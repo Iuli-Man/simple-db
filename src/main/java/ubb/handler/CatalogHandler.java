@@ -14,6 +14,7 @@ import com.google.gson.GsonBuilder;
 import ubb.model.Attribute;
 import ubb.model.Database;
 import ubb.model.Databases;
+import ubb.model.IndexFile;
 import ubb.model.PrimaryKey;
 import ubb.model.Structure;
 import ubb.model.Table;
@@ -66,6 +67,30 @@ public class CatalogHandler {
 		}
 		if (remove) {
 			it.remove();
+		}
+	}
+	
+	public void createIndex(String tableName, String indexName, boolean unique, List<String> attributes){
+		Table table = null;
+		for(Table t : currentDatabase.getTables()){
+			if(t.getName().equals(tableName)){
+				table = t;
+				break;
+			}
+		}
+		if(table != null){
+			IndexFile indexFile = new IndexFile();
+			indexFile.setIndexAttributes(attributes);
+			indexFile.setIndexName(indexName);
+			indexFile.setUnique(unique);
+			int keyLength = 0;
+			for(Attribute att : table.getStructure().getAttributes()){
+				if(attributes.contains(att.getName())){
+					keyLength+=att.getLength();
+				}
+			}
+			indexFile.setKeyLength(keyLength);
+			table.getIndexFiles().add(indexFile);
 		}
 	}
 

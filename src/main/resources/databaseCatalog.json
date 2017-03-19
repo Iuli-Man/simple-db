@@ -1,1 +1,62 @@
-{"databases":[{"dbName":"master","tables":[]}]}
+{
+	"databases": 
+	[
+		{
+			"dbName": "master",
+			"tables": 
+			[
+				
+			]
+		},
+
+		{
+			"dbName": "test",
+			"tables": 
+			[
+				{
+					"name": "test",
+					"structure": 
+					{
+						"attributes": 
+						[
+							{
+								"attributeName": "nume",
+								"type": "CHAR",
+								"length": 10,
+								"isNull": false
+							}
+						]
+					},
+
+					"primaryKey": 
+					{
+						"attributeNames": 
+						[
+							"nume"
+						]
+					},
+
+					"uniqueKeys": 
+					[
+						{
+							"attributeName": "nume"
+						}
+					],
+
+					"indexFiles": 
+					[
+						{
+							"indexName": "uniqueIndex",
+							"keyLength": 10,
+							"isUnique": true,
+							"indexAttributes": 
+							[
+								"nume"
+							]
+						}
+					]
+				}
+			]
+		}
+	]
+}
