@@ -7,10 +7,13 @@ import java.util.List;
 public class Database  implements Serializable{
 	private static final long serialVersionUID = 1L;
 	
-	private String name;
+	private String dbName;
 	private List<Table> tables;
 
 	public List<Table> getTables() {
+		if(tables == null){
+			this.tables = new ArrayList<Table>();
+		}
 		return tables;
 	}
 
@@ -22,11 +25,11 @@ public class Database  implements Serializable{
 	}
 
 	public String getName() {
-		return name;
+		return dbName;
 	}
 
 	public void setName(String name) {
-		this.name = name;
+		this.dbName = name;
 	}
 
 }

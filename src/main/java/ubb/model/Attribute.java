@@ -7,16 +7,16 @@ import ubb.model.enums.AttributeType;
 public class Attribute implements Serializable{
 	private static final long serialVersionUID = 1L;
 	
-	private String name;
+	private String attributeName;
 	private AttributeType type;
 	private int length;
 	private boolean isNull;
 	
 	public String getName() {
-		return name;
+		return attributeName;
 	}
 	public void setName(String name) {
-		this.name = name;
+		this.attributeName = name;
 	}
 	public AttributeType getType() {
 		return type;
