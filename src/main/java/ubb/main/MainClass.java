@@ -1,13 +1,6 @@
 package ubb.main;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import ubb.handler.CatalogHandler;
-import ubb.model.Attribute;
-import ubb.model.PrimaryKey;
-import ubb.model.UniqueKey;
-import ubb.model.enums.AttributeType;
 
 public class MainClass {
 	
@@ -36,7 +29,7 @@ public class MainClass {
 //		att.add("nume");
 //		handler.createIndex("test", "uniqueIndex", true, att);
 		handler.setSchema("test");
-		handler.destroy();
+		handler.flush();
 	}
 
 }

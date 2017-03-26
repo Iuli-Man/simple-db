@@ -5,6 +5,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
@@ -43,34 +44,37 @@ public class CatalogHandler {
 		}
 	}
 	
-	public void setSchema(String database){
+	public String setSchema(String database){
 		for(Database db : databases.getDatabases()){
-			if(db.getName().equals(database))
+			if(db.getName().equals(database)){
 				currentDatabase = db;
-		}
-	}
-
-	public void createDatabase(String dbName) {
-		Database newDB = new Database();
-		newDB.setName(dbName);
-		databases.getDatabases().add(newDB);
-	}
-
-	public void dropDatabase(String dbName) {
-		Iterator<Database> it = databases.getDatabases().iterator();
-		boolean remove = false;
-		while (it.hasNext()) {
-			if (it.next().getName().equals(dbName)) {
-				remove = true;
-				break;
+				return "Current database set to: " + db.getName(); 
 			}
 		}
-		if (remove) {
-			it.remove();
+		return "Could not find database: " + database;
+	}
+
+	public String createDatabase(String dbName) {
+		Database newDB = new Database();
+		newDB.setName(dbName);
+		if(databases.getDatabases().contains(newDB)){
+			return "Database already exists!";
 		}
+		databases.getDatabases().add(newDB);
+		return "Database " + dbName + " succesfully created!";
+	}
+
+	public String dropDatabase(String dbName) {
+		Database db = new Database();
+		db.setName(dbName);
+		if(!databases.getDatabases().contains(db)){
+			return "Database " + dbName + " does not exist!";
+		}
+		databases.getDatabases().remove(db);
+		return "Database " + dbName + " removed!";
 	}
 	
-	public void createIndex(String tableName, String indexName, boolean unique, List<String> attributes){
+	public String createIndex(String tableName, String indexName, boolean unique, List<String> attributes){
 		Table table = null;
 		for(Table t : currentDatabase.getTables()){
 			if(t.getName().equals(tableName)){
@@ -91,36 +95,39 @@ public class CatalogHandler {
 			}
 			indexFile.setKeyLength(keyLength);
 			table.getIndexFiles().add(indexFile);
+			return "Index created!";
+		}else{
+			return "Table " + tableName + " does not exist!";
 		}
 	}
 
-	public void createTable(String tableName, List<Attribute> attributes, PrimaryKey primaryKey,
+	public String createTable(String tableName, List<Attribute> attributes, PrimaryKey primaryKey,
 			List<UniqueKey> uniqueKeys) {
 		Table newTable = new Table();
 		newTable.setName(tableName);
+		if(currentDatabase.getTables().contains(newTable)){
+			return "Table " + tableName + "already exists!";
+		}
 		Structure structure = new Structure();
 		structure.setAttributes(attributes);
 		newTable.setStructure(structure);
 		newTable.setPrimaryKey(primaryKey);
 		newTable.setUniqueKeys(uniqueKeys);
 		currentDatabase.getTables().add(newTable);
+		return "Table created!";
 	}
 	
-	public void dropTable(String tableName){
-		Iterator<Table> it = this.currentDatabase.getTables().iterator();
-		boolean remove = false;
-		while(it.hasNext()){
-			if(it.next().getName().equals(tableName)){
-				remove = true;
-				break;
-			}
+	public String dropTable(String tableName){
+		Table table = new Table();
+		table.setName(tableName);
+		if(!currentDatabase.getTables().contains(table)){
+			return "Table " + tableName + " does not exist!";
 		}
-		if(remove){
-			it.remove();
-		}
+		currentDatabase.getTables().remove(table);
+		return "Table removed!";
 	}
 
-	public void destroy() {
+	public void flush() {
 		try {
 			Writer writer = new FileWriter(CATALOG_FILENAME);
 			gson.toJson(databases, writer);
@@ -129,4 +136,5 @@ public class CatalogHandler {
 			System.out.println(e.getMessage());
 		}
 	}
+	
 }
