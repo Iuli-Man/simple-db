@@ -31,6 +31,9 @@ public class CatalogHandler {
 			gson = new GsonBuilder().create();
 			Reader reader = new FileReader(CATALOG_FILENAME);
 			databases = gson.fromJson(reader, Databases.class);
+			if(databases == null){
+				databases = new Databases();
+			}
 			currentDatabase = databases.getDatabases().isEmpty() ? new Database() : databases.getDatabases().get(0);
 			if (databases.getDatabases().isEmpty()) {
 				currentDatabase.setName("master");
@@ -112,7 +115,7 @@ public class CatalogHandler {
 		newTable.setPrimaryKey(primaryKey);
 		newTable.setUniqueKeys(uniqueKeys);
 		currentDatabase.getTables().add(newTable);
-		return "Table created!";
+		return "Table " + tableName + " created!";
 	}
 	
 	public String dropTable(String tableName){

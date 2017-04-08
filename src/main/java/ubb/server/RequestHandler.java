@@ -5,9 +5,9 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import ubb.handler.CatalogHandler;
 import ubb.model.Attribute;
@@ -34,7 +34,7 @@ public class RequestHandler {
 		String line;
 		try {
 			while ((line = reader.readLine()) != null) {
-				handleLine(line.toLowerCase());
+				handleLine(line);
 				handler.flush();
 			}
 		} catch (IOException e) {
@@ -46,14 +46,14 @@ public class RequestHandler {
 		String[] tokens = line.split(" ");
 		String action = tokens[0];
 		switch (action) {
-		case "create":
+		case "CREATE":
 			handleCreate(line);
 			break;
-		case "set":
+		case "SET":
 			String message = handler.setSchema(tokens[2]);
 			writer.writeBytes(message + '\n');
 			break;
-		case "drop":
+		case "DROP":
 			handleDrop(line);
 			break;
 		default:
@@ -67,14 +67,17 @@ public class RequestHandler {
 		String object = tokens[1];
 		String message;
 		switch (object) {
-		case "database":
+		case "DATABASE":
 			message = handler.createDatabase(tokens[2]);
 			break;
-		case "table":
+		case "TABLE":
 			message = handleCreateTable(line);
 			break;
-		case "index":
-			message = handler.createIndex(tokens[4], tokens[2], true, null);
+		case "INDEX":
+			message = handleCreateIndex(line);
+			break;
+		case "UNIQUE":
+			message = handleCreateIndex(line);
 			break;
 		default:
 			message = "Unknown identifier: " + object;
@@ -88,10 +91,10 @@ public class RequestHandler {
 		String object = tokens[1];
 		String message;
 		switch (object) {
-		case "database":
+		case "DATABASE":
 			message = handler.dropDatabase(tokens[2]);
 			break;
-		case "table":
+		case "TABLE":
 			message = handler.dropTable(tokens[2]);
 			break;
 		default:
@@ -139,6 +142,28 @@ public class RequestHandler {
 			attributesList.add(aModel);
 		}
 		return this.handler.createTable(tableName, attributesList, primaryKey, uniqueKeys);
+	}
+	
+	private String handleCreateIndex(String line){
+		String[] tokens = line.split(" +");
+		String tableName, indexName;
+		boolean unique;
+		List<String> attributes;
+		if(Patterns.UNIQUE.getMatcher(line).find()){
+			indexName = tokens[3];
+			tableName = tokens[5];
+			unique = true;
+		}else{
+			indexName = tokens[2];
+			tableName = tokens[4];
+			unique = false;
+		}
+		Matcher matcher = Patterns.ATTRIBUTES.getMatcher(line);
+		matcher.find();
+		String attributesString = matcher.group();
+		attributesString = attributesString.substring(1, attributesString.length()-1);
+		attributes = Arrays.asList(attributesString.split("[ ]*,[ ]*"));
+		return this.handler.createIndex(tableName, indexName, unique, attributes);
 	}
 
 }

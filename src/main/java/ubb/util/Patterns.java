@@ -5,13 +5,12 @@ import java.util.regex.Pattern;
 
 public enum Patterns {
 	
-	PK("PK"),
-	CHAR("char"),
-	INTEGER("integer"),
+	CHAR("CHAR"),
+	NUMBER("NUMBER"),
 	ATTRIBUTES("\\(.*\\)"),
-	PRIMARY_KEY("primary key"),
-	NOT_NULL("not null"),
-	UNIQUE("unique");
+	PRIMARY_KEY("PRIMARY KEY"),
+	NOT_NULL("NOT NULL"),
+	UNIQUE("UNIQUE");
 	
 	private String pattern;
 	private Patterns(String pattern){
