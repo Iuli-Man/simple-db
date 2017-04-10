@@ -1,3 +1,4 @@
+
 package ubb.server;
 
 import java.io.BufferedReader;
@@ -10,8 +11,10 @@ import java.util.List;
 import java.util.regex.Matcher;
 
 import ubb.handler.CatalogHandler;
+import ubb.handler.DataHandler;
 import ubb.model.Attribute;
 import ubb.model.PrimaryKey;
+import ubb.model.Table;
 import ubb.model.UniqueKey;
 import ubb.model.enums.AttributeType;
 import ubb.util.Patterns;
@@ -21,13 +24,15 @@ public class RequestHandler {
 	private Socket connection;
 	private BufferedReader reader;
 	private DataOutputStream writer;
-	private CatalogHandler handler;
+	private CatalogHandler catHandler;
+	private DataHandler dataHandler;
 
 	public RequestHandler(Socket connection, BufferedReader reader, DataOutputStream writer) {
 		this.connection = connection;
 		this.reader = reader;
 		this.writer = writer;
-		this.handler = new CatalogHandler();
+		this.catHandler = new CatalogHandler();
+		this.dataHandler = new DataHandler(catHandler.getDatabases());
 	}
 
 	public void handleRequests() {
@@ -35,7 +40,7 @@ public class RequestHandler {
 		try {
 			while ((line = reader.readLine()) != null) {
 				handleLine(line);
-				handler.flush();
+				catHandler.flush();
 			}
 		} catch (IOException e) {
 			System.out.println("Could not read/write from/to client: " + e.getMessage());
@@ -50,11 +55,15 @@ public class RequestHandler {
 			handleCreate(line);
 			break;
 		case "SET":
-			String message = handler.setSchema(tokens[2]);
+			String message = catHandler.setSchema(tokens[2]);
 			writer.writeBytes(message + '\n');
 			break;
 		case "DROP":
 			handleDrop(line);
+			break;
+		case "INSERT":
+			message = handleInsert(line);
+			writer.writeBytes(message + '\n');
 			break;
 		default:
 			writer.writeBytes("Unknown action: " + action + '\n');
@@ -68,7 +77,7 @@ public class RequestHandler {
 		String message;
 		switch (object) {
 		case "DATABASE":
-			message = handler.createDatabase(tokens[2]);
+			message = catHandler.createDatabase(tokens[2]);
 			break;
 		case "TABLE":
 			message = handleCreateTable(line);
@@ -92,10 +101,10 @@ public class RequestHandler {
 		String message;
 		switch (object) {
 		case "DATABASE":
-			message = handler.dropDatabase(tokens[2]);
+			message = catHandler.dropDatabase(tokens[2]);
 			break;
 		case "TABLE":
-			message = handler.dropTable(tokens[2]);
+			message = catHandler.dropTable(tokens[2]);
 			break;
 		default:
 			message = "Unknown identifier: " + object;
@@ -105,12 +114,8 @@ public class RequestHandler {
 	}
 	
 	private String handleCreateTable(String line){
-		String tableName = line.split(" ")[2];
-		Matcher matcher = Patterns.ATTRIBUTES.getMatcher(line);
-		matcher.find();
-		String attributesString = matcher.group();
-		attributesString = attributesString.substring(1, attributesString.length()-1);
-		String[] attributes = attributesString.split("[ ]*,[ ]*");
+		String tableName = line.split("[ \\(\\)]")[2];
+		List<String> attributes = extractAttributes(line, false);
 		PrimaryKey primaryKey = new PrimaryKey();
 		List<UniqueKey> uniqueKeys = new ArrayList<UniqueKey>();
 		List<Attribute> attributesList = new ArrayList<Attribute>();
@@ -120,7 +125,7 @@ public class RequestHandler {
 			aModel.setName(name);
 			if(Patterns.CHAR.getMatcher(a).find()){
 				aModel.setType(AttributeType.CHAR);
-				matcher = Patterns.ATTRIBUTES.getMatcher(a);
+				Matcher matcher = Patterns.ATTRIBUTES.getMatcher(a);
 				matcher.find();
 				String length = matcher.group();
 				length = length.substring(1, length.length()-1);
@@ -141,7 +146,7 @@ public class RequestHandler {
 			}
 			attributesList.add(aModel);
 		}
-		return this.handler.createTable(tableName, attributesList, primaryKey, uniqueKeys);
+		return this.catHandler.createTable(tableName, attributesList, primaryKey, uniqueKeys);
 	}
 	
 	private String handleCreateIndex(String line){
@@ -158,12 +163,39 @@ public class RequestHandler {
 			tableName = tokens[4];
 			unique = false;
 		}
+		attributes = extractAttributes(line,false);
+		return this.catHandler.createIndex(tableName, indexName, unique, attributes);
+	}
+
+	private List<String> extractAttributes(String line, boolean values) {
+		List<String> attributes;
 		Matcher matcher = Patterns.ATTRIBUTES.getMatcher(line);
 		matcher.find();
+		if(values){
+			matcher.find();
+		}
 		String attributesString = matcher.group();
 		attributesString = attributesString.substring(1, attributesString.length()-1);
 		attributes = Arrays.asList(attributesString.split("[ ]*,[ ]*"));
-		return this.handler.createIndex(tableName, indexName, unique, attributes);
+		return attributes;
+	}
+	
+	private String handleInsert(String line) throws IOException{
+		String tableName = line.split(" +")[2];
+		List<String> attributes = extractAttributes(line,false);
+		List<String> values = extractAttributes(line,true);
+		List<Attribute> tableAttributes = catHandler.getTableAttributes(tableName);
+		if(tableAttributes == null){
+			return "Table " + tableName + " does not exist";
+		}
+		String key = new String();
+		StringBuilder data = new StringBuilder();
+		for(Attribute attribute : tableAttributes){
+			if(attributes.contains(attribute.getName())){
+				
+			}
+		}
+		return null;
 	}
 
 }

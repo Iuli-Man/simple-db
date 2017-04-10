@@ -7,7 +7,7 @@ public enum Patterns {
 	
 	CHAR("CHAR"),
 	NUMBER("NUMBER"),
-	ATTRIBUTES("\\(.*\\)"),
+	ATTRIBUTES("\\([a-z0-9 A-Z_,]+\\)"),
 	PRIMARY_KEY("PRIMARY KEY"),
 	NOT_NULL("NOT NULL"),
 	UNIQUE("UNIQUE");

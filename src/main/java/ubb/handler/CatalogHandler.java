@@ -10,6 +10,7 @@ import java.util.List;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import ubb.berkeleydb.KeyValueStore;
 import ubb.model.Attribute;
 import ubb.model.Database;
 import ubb.model.Databases;
@@ -25,18 +26,20 @@ public class CatalogHandler {
 	Gson gson;
 	Databases databases;
 	Database currentDatabase;
+	KeyValueStore store;
 
 	public CatalogHandler() {
 		try {
 			gson = new GsonBuilder().create();
 			Reader reader = new FileReader(CATALOG_FILENAME);
 			databases = gson.fromJson(reader, Databases.class);
-			if(databases == null){
+			if (databases == null) {
 				databases = new Databases();
 			}
+			store = new KeyValueStore(databases);
 			currentDatabase = databases.getDatabases().isEmpty() ? new Database() : databases.getDatabases().get(0);
 			if (databases.getDatabases().isEmpty()) {
-				currentDatabase.setName("master");
+				currentDatabase.setName("MASTER");
 				databases.getDatabases().add(currentDatabase);
 			}
 			reader.close();
@@ -45,11 +48,15 @@ public class CatalogHandler {
 		}
 	}
 	
-	public String setSchema(String database){
-		for(Database db : databases.getDatabases()){
-			if(db.getName().equals(database)){
+	public Databases getDatabases(){
+		return databases;
+	}
+
+	public String setSchema(String database) {
+		for (Database db : databases.getDatabases()) {
+			if (db.getName().equals(database)) {
 				currentDatabase = db;
-				return "Current database set to: " + db.getName(); 
+				return "Current database set to: " + db.getName();
 			}
 		}
 		return "Could not find database: " + database;
@@ -58,7 +65,7 @@ public class CatalogHandler {
 	public String createDatabase(String dbName) {
 		Database newDB = new Database();
 		newDB.setName(dbName);
-		if(databases.getDatabases().contains(newDB)){
+		if (databases.getDatabases().contains(newDB)) {
 			return "Database already exists!";
 		}
 		databases.getDatabases().add(newDB);
@@ -68,36 +75,36 @@ public class CatalogHandler {
 	public String dropDatabase(String dbName) {
 		Database db = new Database();
 		db.setName(dbName);
-		if(!databases.getDatabases().contains(db)){
+		if (!databases.getDatabases().contains(db)) {
 			return "Database " + dbName + " does not exist!";
 		}
 		databases.getDatabases().remove(db);
 		return "Database " + dbName + " removed!";
 	}
-	
-	public String createIndex(String tableName, String indexName, boolean unique, List<String> attributes){
+
+	public String createIndex(String tableName, String indexName, boolean unique, List<String> attributes) {
 		Table table = null;
-		for(Table t : currentDatabase.getTables()){
-			if(t.getName().equals(tableName)){
+		for (Table t : currentDatabase.getTables()) {
+			if (t.getName().equals(tableName)) {
 				table = t;
 				break;
 			}
 		}
-		if(table != null){
+		if (table != null) {
 			IndexFile indexFile = new IndexFile();
 			indexFile.setIndexAttributes(attributes);
 			indexFile.setIndexName(indexName);
 			indexFile.setUnique(unique);
 			int keyLength = 0;
-			for(Attribute att : table.getStructure().getAttributes()){
-				if(attributes.contains(att.getName())){
-					keyLength+=att.getLength();
+			for (Attribute att : table.getStructure().getAttributes()) {
+				if (attributes.contains(att.getName())) {
+					keyLength += att.getLength();
 				}
 			}
 			indexFile.setKeyLength(keyLength);
 			table.getIndexFiles().add(indexFile);
 			return "Index created!";
-		}else{
+		} else {
 			return "Table " + tableName + " does not exist!";
 		}
 	}
@@ -106,7 +113,7 @@ public class CatalogHandler {
 			List<UniqueKey> uniqueKeys) {
 		Table newTable = new Table();
 		newTable.setName(tableName);
-		if(currentDatabase.getTables().contains(newTable)){
+		if (currentDatabase.getTables().contains(newTable)) {
 			return "Table " + tableName + "already exists!";
 		}
 		Structure structure = new Structure();
@@ -115,17 +122,28 @@ public class CatalogHandler {
 		newTable.setPrimaryKey(primaryKey);
 		newTable.setUniqueKeys(uniqueKeys);
 		currentDatabase.getTables().add(newTable);
+		store.createTable(currentDatabase.getName() + "." + tableName);
 		return "Table " + tableName + " created!";
 	}
-	
-	public String dropTable(String tableName){
+
+	public String dropTable(String tableName) {
 		Table table = new Table();
 		table.setName(tableName);
-		if(!currentDatabase.getTables().contains(table)){
+		if (!currentDatabase.getTables().contains(table)) {
 			return "Table " + tableName + " does not exist!";
 		}
 		currentDatabase.getTables().remove(table);
+		store.deleteTable(currentDatabase.getName() + "." + tableName);
 		return "Table removed!";
+	}
+	
+	public List<Attribute> getTableAttributes(String tableName){
+		Table table = new Table();
+		table.setName(tableName);
+		int index = currentDatabase.getTables().indexOf(table);
+		if(index >= 0)
+			return currentDatabase.getTables().get(index).getStructure().getAttributes();
+		return null;
 	}
 
 	public void flush() {
@@ -137,5 +155,5 @@ public class CatalogHandler {
 			System.out.println(e.getMessage());
 		}
 	}
-	
+
 }
