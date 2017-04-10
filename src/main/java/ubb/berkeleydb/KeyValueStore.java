@@ -1,6 +1,7 @@
 package ubb.berkeleydb;
 
 import java.io.File;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -56,12 +57,16 @@ public class KeyValueStore {
 		table.delete();
 	}
 
-	public String putRow(String tableName, String key, String data) {
+	public String putRow(String database, Table table, String key, String data) {
 		StoreEntity row = new StoreEntity();
 		row.setKey(key);
 		row.setData(data);
 		try {
-			index.get(tableName).put(row);
+			StoreEntity entity = index.get(database + table.getName()).get(key);
+			if(entity != null){
+				return "Row with primary key " + Arrays.asList(key.split("#")).toString() + " exists";
+			}
+			index.get(database + table.getName()).put(row);
 		} catch (DatabaseException e) {
 			return "Cannot insert row: " + e.getMessage();
 		}

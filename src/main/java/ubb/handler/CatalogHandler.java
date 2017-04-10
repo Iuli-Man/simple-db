@@ -22,7 +22,7 @@ import ubb.model.UniqueKey;
 
 public class CatalogHandler {
 
-	private static final String CATALOG_FILENAME = "src/main/resources/databaseCatalog.json";
+	private static final String CATALOG_FILENAME = "tables/databaseCatalog.json";
 	Gson gson;
 	Databases databases;
 	Database currentDatabase;
@@ -50,6 +50,10 @@ public class CatalogHandler {
 	
 	public Databases getDatabases(){
 		return databases;
+	}
+	
+	public Database getCurrentDatabase() {
+		return currentDatabase;
 	}
 
 	public String setSchema(String database) {
@@ -137,12 +141,12 @@ public class CatalogHandler {
 		return "Table removed!";
 	}
 	
-	public List<Attribute> getTableAttributes(String tableName){
+	public Table getTable(String tableName){
 		Table table = new Table();
 		table.setName(tableName);
 		int index = currentDatabase.getTables().indexOf(table);
 		if(index >= 0)
-			return currentDatabase.getTables().get(index).getStructure().getAttributes();
+			return currentDatabase.getTables().get(index);
 		return null;
 	}
 	
