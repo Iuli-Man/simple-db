@@ -21,6 +21,7 @@ import ubb.util.Patterns;
 
 public class RequestHandler {
 
+	private static final String DATA_SEPARATOR = "#";
 	private Socket connection;
 	private BufferedReader reader;
 	private DataOutputStream writer;
@@ -115,7 +116,7 @@ public class RequestHandler {
 	
 	private String handleCreateTable(String line){
 		String tableName = line.split("[ \\(\\)]")[2];
-		List<String> attributes = extractAttributes(line, false);
+		List<String> attributes = extractAttributes(line, false, Patterns.TABLE_ATTRIBUTES);
 		PrimaryKey primaryKey = new PrimaryKey();
 		List<UniqueKey> uniqueKeys = new ArrayList<UniqueKey>();
 		List<Attribute> attributesList = new ArrayList<Attribute>();
@@ -163,13 +164,13 @@ public class RequestHandler {
 			tableName = tokens[4];
 			unique = false;
 		}
-		attributes = extractAttributes(line,false);
+		attributes = extractAttributes(line,false, Patterns.ATTRIBUTES);
 		return this.catHandler.createIndex(tableName, indexName, unique, attributes);
 	}
 
-	private List<String> extractAttributes(String line, boolean values) {
+	private List<String> extractAttributes(String line, boolean values, Patterns pattern) {
 		List<String> attributes;
-		Matcher matcher = Patterns.ATTRIBUTES.getMatcher(line);
+		Matcher matcher = pattern.getMatcher(line);
 		matcher.find();
 		if(values){
 			matcher.find();
@@ -182,20 +183,31 @@ public class RequestHandler {
 	
 	private String handleInsert(String line) throws IOException{
 		String tableName = line.split(" +")[2];
-		List<String> attributes = extractAttributes(line,false);
-		List<String> values = extractAttributes(line,true);
-		List<Attribute> tableAttributes = catHandler.getTableAttributes(tableName);
-		if(tableAttributes == null){
+		List<String> attributes = extractAttributes(line,false, Patterns.ATTRIBUTES);
+		List<String> values = extractAttributes(line,true, Patterns.ATTRIBUTES);
+		Table table = catHandler.getTable(tableName);
+		if(table == null){
 			return "Table " + tableName + " does not exist";
 		}
-		String key = new String();
+		StringBuilder key = new StringBuilder();
 		StringBuilder data = new StringBuilder();
-		for(Attribute attribute : tableAttributes){
+		int processedAttributes = 0;
+		for(Attribute attribute : table.getStructure().getAttributes()){
 			if(attributes.contains(attribute.getName())){
-				
+				String attributeValue = values.get(attributes.indexOf(attribute.getName()));
+				if(table.getPrimaryKey().getAttributeName().contains(attribute.getName())){
+					key.append(attributeValue).append(DATA_SEPARATOR);
+				}else{
+					data.append(attributeValue).append(DATA_SEPARATOR);
+				}
+				processedAttributes++;
+			}else{
+				data.append("null").append(DATA_SEPARATOR);
 			}
 		}
-		return null;
+		if(attributes.size() != processedAttributes)
+			return "Not all attributes are in table " + tableName;
+		return dataHandler.insertRow(catHandler.getCurrentDatabase().getName(), table, key.toString(), data.toString());
 	}
 
 }
