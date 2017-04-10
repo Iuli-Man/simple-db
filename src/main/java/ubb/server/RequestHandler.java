@@ -65,6 +65,10 @@ public class RequestHandler {
 			message = handleInsert(line);
 			writer.writeBytes(message + '\n');
 			break;
+		case "DELETE":
+			message = handleDelete(line);
+			writer.writeBytes(message + '\n');
+			break;
 		default:
 			writer.writeBytes("Unknown action: " + action + '\n');
 			break;
@@ -195,6 +199,26 @@ public class RequestHandler {
 				
 			}
 		}
+		return null;
+	}
+	
+	private String handleDelete(String line){
+		String[] words = line.split(" +");
+		String tableName = words[2];
+		String attribute = words[4];
+		String value = words[6];
+		Table table = catHandler.getTableByName(tableName);
+		if(table == null){
+			return "Table " + tableName + " does not exist";
+		}
+		PrimaryKey key = table.getPrimaryKey();
+		if(key.getAttributeName().isEmpty()||!key.getAttributeName().get(0).equals(attribute)){
+			return "The key attribute " + attribute + " does not exist";
+		}
+		else{
+			dataHandler.deleteRow(catHandler.getNameOfCurrentDatabase(), tableName, value);
+		}
+		
 		return null;
 	}
 

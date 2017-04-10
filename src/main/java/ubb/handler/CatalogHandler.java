@@ -145,6 +145,19 @@ public class CatalogHandler {
 			return currentDatabase.getTables().get(index).getStructure().getAttributes();
 		return null;
 	}
+	
+	public Table getTableByName(String tableName){
+		Table table = new Table();
+		table.setName(tableName);
+		int index = currentDatabase.getTables().indexOf(table);
+		if(index >= 0)
+			return currentDatabase.getTables().get(index);
+		return null;
+	}
+	
+	public String getNameOfCurrentDatabase(){
+		return currentDatabase.getName();
+	}
 
 	public void flush() {
 		try {

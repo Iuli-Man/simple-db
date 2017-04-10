@@ -14,5 +14,9 @@ public class DataHandler {
 	public String insertRow(String database, String tableName, String key, String data) {
 		return store.putRow(database + "." + tableName, key, data);
 	}
+	
+	public String deleteRow(String database, String tableName, String key) {
+		return store.deleteRow(tableName, key);
+	}
 
 }
