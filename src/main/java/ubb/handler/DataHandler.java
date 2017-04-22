@@ -16,8 +16,16 @@ public class DataHandler {
 		return store.putRow(database, table, key, data);
 	}
 	
+	public String insertIndex(String database, String table, String attribute, String value, String primaryKey){
+		return store.putRowInIndex(database, table, attribute, value, primaryKey);
+	}
+	
 	public String deleteRow(String database, String tableName, String key) {
 		return store.deleteRow(database + "." + tableName, key);
+	}
+	
+	public String checkUnique(String database, String table, String attribute, String value){
+		return store.checkUnique(database, table, attribute, value);
 	}
 
 }

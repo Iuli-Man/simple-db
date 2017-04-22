@@ -129,7 +129,7 @@ public class CatalogHandler {
 		currentDatabase.getTables().add(newTable);
 		store.createStoreFile(Constants.TABLE, currentDatabase.getName() + "." + tableName);
 		for(UniqueKey uniqueKey : uniqueKeys){
-			store.createStoreFile(Constants.INDEX, currentDatabase.getName()+"."+uniqueKey.getAttributeName());
+			store.createStoreFile(Constants.INDEX, currentDatabase.getName()+"."+tableName+"."+uniqueKey.getAttributeName());
 		}
 		return "Table " + tableName + " created!";
 	}

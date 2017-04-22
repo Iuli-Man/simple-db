@@ -11,6 +11,7 @@ public class Attribute implements Serializable{
 	private AttributeType type;
 	private int length;
 	private boolean isNull;
+	private boolean isUnique;
 	
 	public String getName() {
 		return attributeName;
@@ -35,6 +36,12 @@ public class Attribute implements Serializable{
 	}
 	public void setNull(boolean isNull) {
 		this.isNull = isNull;
+	}
+	public boolean isUnique() {
+		return isUnique;
+	}
+	public void setUnique(boolean isUnique) {
+		this.isUnique = isUnique;
 	}
 
 }

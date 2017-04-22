@@ -15,6 +15,7 @@ import com.sleepycat.persist.StoreConfig;
 import ubb.model.Database;
 import ubb.model.Databases;
 import ubb.model.Table;
+import ubb.model.UniqueKey;
 import ubb.util.Constants;
 
 public class KeyValueStore {
@@ -28,11 +29,14 @@ public class KeyValueStore {
 		for(Database db : databases.getDatabases()){
 			for(Table table : db.getTables()){
 				createStoreFile(Constants.TABLE, db.getName() + "." + table.getName());
+				for(UniqueKey uniqueKey : table.getUniqueKeys()){
+					createStoreFile(Constants.INDEX, db.getName()+"."+table.getName()+"."+uniqueKey.getAttributeName());
+				}
 			}
 		}
 	}
 
-	public void createStoreFile(String type, String tableName) {
+	public void createStoreFile(String type, String indexName) {
 		EnvironmentConfig envConfig = new EnvironmentConfig();
 		StoreConfig storeConfig = new StoreConfig();
 		envConfig.setAllowCreate(true);
@@ -40,11 +44,11 @@ public class KeyValueStore {
 		try {
 			File file = new File("./"+type);
 			file.mkdir();
-			file = new File("./"+type+'/'+tableName);
+			file = new File("./"+type+'/'+indexName);
 			file.mkdir();
-			envMap.put(tableName, new Environment(file, envConfig));
-			storeMap.put(tableName, new EntityStore(envMap.get(tableName), "EntityStore", storeConfig));
-			indexes.put(tableName, storeMap.get(tableName).getPrimaryIndex(String.class, StoreEntity.class));
+			envMap.put(indexName, new Environment(file, envConfig));
+			storeMap.put(indexName, new EntityStore(envMap.get(indexName), "EntityStore", storeConfig));
+			indexes.put(indexName, storeMap.get(indexName).getPrimaryIndex(String.class, StoreEntity.class));
 		} catch (DatabaseException dbe) {
 			System.out.println("Cannot open db environment: " + dbe.getMessage());
 		}
@@ -75,6 +79,19 @@ public class KeyValueStore {
 		}
 		return "Row inserted";
 	}
+	
+	public String putRowInIndex(String database, String table, String attribute, String value, String primaryKey){
+		StoreEntity row = new StoreEntity();
+		row.setKey(value);
+		row.setData(primaryKey);
+		try{
+			PrimaryIndex<String,StoreEntity> index = indexes.get(database + "." + table + "." + attribute);
+			index.put(row);
+			return null;
+		}catch (DatabaseException e) {
+			return "Error occured during update of index for "+attribute+": "+e.getMessage();
+		}
+	}
 
 	public String deleteRow(String tableName, String key) {
 		try {
@@ -83,6 +100,18 @@ public class KeyValueStore {
 			return "Cannot delete row: " + e.getMessage();
 		}
 		return "Row deleted";
+	}
+	
+	public String checkUnique(String database, String table, String attribute, String value){
+		PrimaryIndex<String,StoreEntity> index = indexes.get(database+"."+table+"."+attribute);
+		try {
+			if(index.contains(value)){
+				return attribute + " already contains value "+value;
+			}
+			return null;
+		} catch (DatabaseException e) {
+			return "Something went wrong when checking uniqueness: "+e.getMessage();
+		}
 	}
 
 	public void close() {

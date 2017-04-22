@@ -144,6 +144,7 @@ public class RequestHandler {
 				UniqueKey uniqueKey = new UniqueKey();
 				uniqueKey.setAttributeName(name);
 				uniqueKeys.add(uniqueKey);
+				aModel.setUnique(true);
 			}
 			if(Patterns.PRIMARY_KEY.getMatcher(a).find()){
 				primaryKey.getAttributeName().add(name);
@@ -187,6 +188,7 @@ public class RequestHandler {
 	
 	private String handleInsert(String line) throws IOException{
 		String tableName = line.split(" +")[2];
+		String database = catHandler.getCurrentDatabase().getName();
 		List<String> attributes = extractAttributes(line,false, Patterns.ATTRIBUTES);
 		List<String> values = extractAttributes(line,true, Patterns.ATTRIBUTES);
 		Table table = catHandler.getTable(tableName);
@@ -202,16 +204,25 @@ public class RequestHandler {
 				if(table.getPrimaryKey().getAttributeName().contains(attribute.getName())){
 					key.append(attributeValue).append(DATA_SEPARATOR);
 				}else{
+					if(attribute.isNull()){
+						String message = dataHandler.checkUnique(database, table.getName(), attribute.getName(), attributeValue);
+						if(message != null)
+							return message;
+						dataHandler.insertIndex(database, table.getName(), attribute.getName(), attributeValue, key.toString());
+					}
 					data.append(attributeValue).append(DATA_SEPARATOR);
 				}
 				processedAttributes++;
 			}else{
-				data.append("null").append(DATA_SEPARATOR);
+				if(attribute.isNull())
+					data.append("null").append(DATA_SEPARATOR);
+				else
+					return attribute.getName() + " cannot be null";
 			}
 		}
 		if(attributes.size() != processedAttributes)
 			return "Not all attributes are in table " + tableName;
-		return dataHandler.insertRow(catHandler.getCurrentDatabase().getName(), table, key.toString(), data.toString());
+		return dataHandler.insertRow(database, table, key.toString(), data.toString());
 	}
 	
 	private String handleDelete(String line){
