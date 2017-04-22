@@ -22,7 +22,7 @@ public class KeyValueStore {
 	private Map<String, Environment> envMap = new HashMap<String, Environment>();
 	private Map<String, EntityStore> storeMap = new HashMap<String, EntityStore>();
 
-	private Map<String, PrimaryIndex<String, StoreEntity>> index = new HashMap<String, PrimaryIndex<String, StoreEntity>>();
+	private Map<String, PrimaryIndex<String, StoreEntity>> indexes = new HashMap<String, PrimaryIndex<String, StoreEntity>>();
 	
 	public KeyValueStore(Databases databases){
 		for(Database db : databases.getDatabases()){
@@ -44,7 +44,7 @@ public class KeyValueStore {
 			file.mkdir();
 			envMap.put(tableName, new Environment(file, envConfig));
 			storeMap.put(tableName, new EntityStore(envMap.get(tableName), "EntityStore", storeConfig));
-			index.put(tableName, storeMap.get(tableName).getPrimaryIndex(String.class, StoreEntity.class));
+			indexes.put(tableName, storeMap.get(tableName).getPrimaryIndex(String.class, StoreEntity.class));
 		} catch (DatabaseException dbe) {
 			System.out.println("Cannot open db environment: " + dbe.getMessage());
 		}
@@ -54,7 +54,7 @@ public class KeyValueStore {
 		File table = new File("/tables/"+tableName);
 		envMap.remove(tableName);
 		storeMap.remove(tableName);
-		index.remove(tableName);
+		indexes.remove(tableName);
 		table.delete();
 	}
 
@@ -63,11 +63,13 @@ public class KeyValueStore {
 		row.setKey(key);
 		row.setData(data);
 		try {
-			StoreEntity entity = index.get(database + table.getName()).get(key);
+			PrimaryIndex<String,StoreEntity> index = indexes.get(database + "." + table.getName());
+			StoreEntity entity = index.get(key);
 			if(entity != null){
 				return "Row with primary key " + Arrays.asList(key.split("#")).toString() + " exists";
 			}
-			index.get(database + table.getName()).put(row);
+			
+			index.put(row);
 		} catch (DatabaseException e) {
 			return "Cannot insert row: " + e.getMessage();
 		}
@@ -76,7 +78,7 @@ public class KeyValueStore {
 
 	public String deleteRow(String tableName, String key) {
 		try {
-			index.get(tableName).delete(key);
+			indexes.get(tableName).delete(key);
 		} catch (DatabaseException e) {
 			return "Cannot delete row: " + e.getMessage();
 		}

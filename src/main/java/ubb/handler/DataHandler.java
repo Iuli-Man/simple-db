@@ -17,7 +17,7 @@ public class DataHandler {
 	}
 	
 	public String deleteRow(String database, String tableName, String key) {
-		return store.deleteRow(tableName, key);
+		return store.deleteRow(database + "." + tableName, key);
 	}
 
 }
