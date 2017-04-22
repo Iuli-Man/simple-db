@@ -15,6 +15,7 @@ import com.sleepycat.persist.StoreConfig;
 import ubb.model.Database;
 import ubb.model.Databases;
 import ubb.model.Table;
+import ubb.util.Constants;
 
 public class KeyValueStore {
 
@@ -26,20 +27,20 @@ public class KeyValueStore {
 	public KeyValueStore(Databases databases){
 		for(Database db : databases.getDatabases()){
 			for(Table table : db.getTables()){
-				createTable(db.getName() + "." + table.getName());
+				createStoreFile(Constants.TABLE, db.getName() + "." + table.getName());
 			}
 		}
 	}
 
-	public void createTable(String tableName) {
+	public void createStoreFile(String type, String tableName) {
 		EnvironmentConfig envConfig = new EnvironmentConfig();
 		StoreConfig storeConfig = new StoreConfig();
 		envConfig.setAllowCreate(true);
 		storeConfig.setAllowCreate(true);
 		try {
-			File file = new File("./tables");
+			File file = new File("./"+type);
 			file.mkdir();
-			file = new File("./tables/"+tableName);
+			file = new File("./"+type+'/'+tableName);
 			file.mkdir();
 			envMap.put(tableName, new Environment(file, envConfig));
 			storeMap.put(tableName, new EntityStore(envMap.get(tableName), "EntityStore", storeConfig));

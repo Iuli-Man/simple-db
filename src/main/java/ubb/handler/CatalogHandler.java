@@ -19,6 +19,7 @@ import ubb.model.PrimaryKey;
 import ubb.model.Structure;
 import ubb.model.Table;
 import ubb.model.UniqueKey;
+import ubb.util.Constants;
 
 public class CatalogHandler {
 
@@ -126,7 +127,10 @@ public class CatalogHandler {
 		newTable.setPrimaryKey(primaryKey);
 		newTable.setUniqueKeys(uniqueKeys);
 		currentDatabase.getTables().add(newTable);
-		store.createTable(currentDatabase.getName() + "." + tableName);
+		store.createStoreFile(Constants.TABLE, currentDatabase.getName() + "." + tableName);
+		for(UniqueKey uniqueKey : uniqueKeys){
+			store.createStoreFile(Constants.INDEX, currentDatabase.getName()+"."+uniqueKey.getAttributeName());
+		}
 		return "Table " + tableName + " created!";
 	}
 
