@@ -228,10 +228,8 @@ public class RequestHandler {
 			return "The key attribute " + attribute + " does not exist";
 		}
 		else{
-			dataHandler.deleteRow(catHandler.getNameOfCurrentDatabase(), tableName, value);
+			return dataHandler.deleteRow(catHandler.getNameOfCurrentDatabase(), tableName, value+"#");
 		}
-		
-		return null;
 	}
 
 }
