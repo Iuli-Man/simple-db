@@ -117,20 +117,24 @@ public class KeyValueStore {
 	}
 
 	public String checkForeignKey(String database, ForeignKey fk, String value) {
-		value = value+"#";
+		String valuePk = value+"#";
 		StringBuffer indexName = new StringBuffer(database + "." + fk.getRefTable());
 		PrimaryIndex<String, StoreEntity> indexPk = indexes.get(indexName.toString());
 		indexName.append("." + fk.getRefAttr());
 		PrimaryIndex<String, StoreEntity> index = indexes.get(indexName.toString());
 		try {
-			if ((index == null && indexPk == null) || (index != null && index.get(value) == null)
-					|| (indexPk != null && indexPk.get(value) == null)) {
-				return "Referenced key is not in " + fk.getRefTable() + "." + fk.getRefAttr();
+			// has unique index
+			if (index != null && index.get(value) != null) {
+				return null;
 			}
+			// has primary key index
+			if(indexPk != null && indexPk.get(valuePk) != null){
+				return null;
+			}
+			return "Referenced key is not in " + fk.getRefTable() + "." + fk.getRefAttr();
 		} catch (DatabaseException e) {
-			return "Something went wrong when checking uniqueness: " + e.getMessage();
+			return "Something went wrong when checking index: " + e.getMessage();
 		}
-		return null;
 	}
 
 	public void close() {

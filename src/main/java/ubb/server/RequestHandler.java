@@ -35,7 +35,7 @@ public class RequestHandler {
 		this.reader = reader;
 		this.writer = writer;
 		this.catHandler = new CatalogHandler();
-		this.dataHandler = new DataHandler(catHandler.getDatabases());
+		this.dataHandler = new DataHandler(catHandler.getStore());
 	}
 
 	public void handleRequests() {
@@ -156,7 +156,7 @@ public class RequestHandler {
 			}
 			if(Patterns.FOREIGN_KEY.getMatcher(a).find()){
 				ForeignKey fk = new ForeignKey();
-				String table = a.substring(a.indexOf("ON") + 3);
+				String table = a.substring(a.indexOf("FOREIGN KEY ON") + 15);
 				table = table.trim();
 				String[] list = table.split("\\.");
 				fk.setAttName(aModel.getName());

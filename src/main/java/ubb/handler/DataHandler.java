@@ -1,7 +1,6 @@
 package ubb.handler;
 
 import ubb.berkeleydb.KeyValueStore;
-import ubb.model.Databases;
 import ubb.model.ForeignKey;
 import ubb.model.Table;
 
@@ -9,8 +8,8 @@ public class DataHandler {
 
 	KeyValueStore store;
 
-	public DataHandler(Databases db) {
-		store = new KeyValueStore(db);
+	public DataHandler(KeyValueStore store) {
+		this.store = store;
 	}
 
 	public String insertRow(String database, Table table, String key, String data) {

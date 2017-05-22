@@ -31,6 +31,14 @@ public class CatalogHandler {
 	Database currentDatabase;
 	KeyValueStore store;
 
+	public KeyValueStore getStore() {
+		return store;
+	}
+
+	public void setStore(KeyValueStore store) {
+		this.store = store;
+	}
+
 	public CatalogHandler() {
 		try {
 			gson = new GsonBuilder().create();
@@ -144,7 +152,7 @@ public class CatalogHandler {
 						}
 					}
 					if(!hasIndex){
-						return "Referenced key "+fk.getRefTable()+"."+fk.getRefAttr()+" doesn't has an index!";
+						return "Referenced key "+fk.getRefTable()+"."+fk.getRefAttr()+" doesn't have an index!";
 					}
 				}
 			}
