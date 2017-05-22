@@ -8,10 +8,11 @@ public enum Patterns {
 	CHAR("CHAR"),
 	NUMBER("NUMBER"),
 	ATTRIBUTES("\\([a-z0-9 A-Z_,]+\\)"),
-	TABLE_ATTRIBUTES("\\([a-z 0-9A-Z_,\\(\\)]+\\)"),
+	TABLE_ATTRIBUTES("\\([a-z 0-9A-Z_\\.,\\(\\)]+\\)"),
 	PRIMARY_KEY("PRIMARY KEY"),
 	NOT_NULL("NOT NULL"),
-	UNIQUE("UNIQUE");
+	UNIQUE("UNIQUE"),
+	FOREIGN_KEY("FOREIGN KEY");
 	
 	private String pattern;
 	private Patterns(String pattern){

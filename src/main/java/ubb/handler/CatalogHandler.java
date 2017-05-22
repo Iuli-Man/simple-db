@@ -14,7 +14,9 @@ import ubb.berkeleydb.KeyValueStore;
 import ubb.model.Attribute;
 import ubb.model.Database;
 import ubb.model.Databases;
+import ubb.model.ForeignKey;
 import ubb.model.IndexFile;
+import ubb.model.KeyType;
 import ubb.model.PrimaryKey;
 import ubb.model.Structure;
 import ubb.model.Table;
@@ -115,17 +117,47 @@ public class CatalogHandler {
 	}
 
 	public String createTable(String tableName, List<Attribute> attributes, PrimaryKey primaryKey,
-			List<UniqueKey> uniqueKeys) {
+			List<UniqueKey> uniqueKeys, List<ForeignKey> foreignKeys) {
 		Table newTable = new Table();
 		newTable.setName(tableName);
 		if (currentDatabase.getTables().contains(newTable)) {
 			return "Table " + tableName + "already exists!";
+		}
+		for(ForeignKey fk : foreignKeys){
+			Table tb = getTableByName(fk.getRefTable());
+			if(tb == null){
+				return "Referenced table " + fk.getRefTable() + " does not exist!";
+			}
+			boolean contains = false;
+			for(Attribute att : tb.getStructure().getAttributes()){
+				if(att.getName().equals(fk.getRefAttr())){
+					if(att.getKeyType() == KeyType.PRIMARY_KEY || att.getKeyType() == KeyType.UNIQUE_KEY){
+						contains = true;
+						break;
+					}
+					boolean hasIndex = false;
+					for(IndexFile idx : tb.getIndexFiles()){
+						if(idx.getIndexAttributes().contains(att.getName())){
+							hasIndex = true;
+							contains = true;
+							break;
+						}
+					}
+					if(!hasIndex){
+						return "Referenced key "+fk.getRefTable()+"."+fk.getRefAttr()+" doesn't has an index!";
+					}
+				}
+			}
+			if(!contains){
+				return "Referenced key " + fk.getRefAttr() + " does not belong to table " + fk.getRefTable();
+			}
 		}
 		Structure structure = new Structure();
 		structure.setAttributes(attributes);
 		newTable.setStructure(structure);
 		newTable.setPrimaryKey(primaryKey);
 		newTable.setUniqueKeys(uniqueKeys);
+		newTable.setForeignKeys(foreignKeys);
 		currentDatabase.getTables().add(newTable);
 		store.createStoreFile(Constants.TABLE, currentDatabase.getName() + "." + tableName);
 		for(UniqueKey uniqueKey : uniqueKeys){

@@ -13,6 +13,8 @@ import java.util.regex.Matcher;
 import ubb.handler.CatalogHandler;
 import ubb.handler.DataHandler;
 import ubb.model.Attribute;
+import ubb.model.ForeignKey;
+import ubb.model.KeyType;
 import ubb.model.PrimaryKey;
 import ubb.model.Table;
 import ubb.model.UniqueKey;
@@ -124,6 +126,7 @@ public class RequestHandler {
 		PrimaryKey primaryKey = new PrimaryKey();
 		List<UniqueKey> uniqueKeys = new ArrayList<UniqueKey>();
 		List<Attribute> attributesList = new ArrayList<Attribute>();
+		List<ForeignKey> foreignKeys = new ArrayList<ForeignKey>();
 		for(String a : attributes){
 			Attribute aModel = new Attribute();
 			String name = a.split(" ")[0];
@@ -144,15 +147,27 @@ public class RequestHandler {
 				UniqueKey uniqueKey = new UniqueKey();
 				uniqueKey.setAttributeName(name);
 				uniqueKeys.add(uniqueKey);
-				aModel.setUnique(true);
+				aModel.setKeyType(KeyType.UNIQUE_KEY);
 			}
 			if(Patterns.PRIMARY_KEY.getMatcher(a).find()){
 				primaryKey.getAttributeName().add(name);
 				aModel.setNull(false);
+				aModel.setKeyType(KeyType.PRIMARY_KEY);
+			}
+			if(Patterns.FOREIGN_KEY.getMatcher(a).find()){
+				ForeignKey fk = new ForeignKey();
+				String table = a.substring(a.indexOf("ON") + 3);
+				table = table.trim();
+				String[] list = table.split("\\.");
+				fk.setAttName(aModel.getName());
+				fk.setRefTable(list[0]);
+				fk.setRefAttr(list[1]);
+				foreignKeys.add(fk);
+				aModel.setKeyType(KeyType.FOREIGN_KEY);
 			}
 			attributesList.add(aModel);
 		}
-		return this.catHandler.createTable(tableName, attributesList, primaryKey, uniqueKeys);
+		return this.catHandler.createTable(tableName, attributesList, primaryKey, uniqueKeys, foreignKeys);
 	}
 	
 	private String handleCreateIndex(String line){
@@ -201,14 +216,27 @@ public class RequestHandler {
 		for(Attribute attribute : table.getStructure().getAttributes()){
 			if(attributes.contains(attribute.getName())){
 				String attributeValue = values.get(attributes.indexOf(attribute.getName()));
-				if(table.getPrimaryKey().getAttributeName().contains(attribute.getName())){
+				if(attribute.getKeyType() == KeyType.PRIMARY_KEY){
 					key.append(attributeValue).append(DATA_SEPARATOR);
 				}else{
-					if(attribute.isNull()){
+					if(attribute.getKeyType() == KeyType.UNIQUE_KEY){
 						String message = dataHandler.checkUnique(database, table.getName(), attribute.getName(), attributeValue);
 						if(message != null)
 							return message;
 						dataHandler.insertIndex(database, table.getName(), attribute.getName(), attributeValue, key.toString());
+					}
+					if(attribute.getKeyType() == KeyType.FOREIGN_KEY){
+						ForeignKey foreignKey = null;
+						for(ForeignKey fk : table.getForeignKeys()){
+							if(fk.getAttName().equals(attribute.getName())){
+								foreignKey = fk;
+								break;
+							}
+						}
+						String message = dataHandler.checkForeignKey(database, foreignKey, attributeValue);
+						if(message != null){
+							return message;
+						}
 					}
 					data.append(attributeValue).append(DATA_SEPARATOR);
 				}

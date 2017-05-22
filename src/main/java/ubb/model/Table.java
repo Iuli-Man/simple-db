@@ -10,6 +10,7 @@ public class Table implements Serializable{
 	private String name;
 	private Structure structure;
 	private PrimaryKey primaryKey;
+	private List<ForeignKey> foreignKeys;
 	private List<UniqueKey> uniqueKeys;
 	private List<IndexFile> indexFiles;
 
@@ -82,6 +83,14 @@ public class Table implements Serializable{
 		} else if (!name.equals(other.name))
 			return false;
 		return true;
+	}
+
+	public List<ForeignKey> getForeignKeys() {
+		return foreignKeys;
+	}
+
+	public void setForeignKeys(List<ForeignKey> foreignKeys) {
+		this.foreignKeys = foreignKeys;
 	}
 	
 	

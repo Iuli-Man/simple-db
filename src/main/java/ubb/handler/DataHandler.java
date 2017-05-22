@@ -2,6 +2,7 @@ package ubb.handler;
 
 import ubb.berkeleydb.KeyValueStore;
 import ubb.model.Databases;
+import ubb.model.ForeignKey;
 import ubb.model.Table;
 
 public class DataHandler {
@@ -26,6 +27,10 @@ public class DataHandler {
 	
 	public String checkUnique(String database, String table, String attribute, String value){
 		return store.checkUnique(database, table, attribute, value);
+	}
+	
+	public String checkForeignKey(String database, ForeignKey fk, String value){
+		return store.checkForeignKey(database, fk, value);
 	}
 
 }

@@ -14,6 +14,7 @@ import com.sleepycat.persist.StoreConfig;
 
 import ubb.model.Database;
 import ubb.model.Databases;
+import ubb.model.ForeignKey;
 import ubb.model.Table;
 import ubb.model.UniqueKey;
 import ubb.util.Constants;
@@ -24,13 +25,14 @@ public class KeyValueStore {
 	private Map<String, EntityStore> storeMap = new HashMap<String, EntityStore>();
 
 	private Map<String, PrimaryIndex<String, StoreEntity>> indexes = new HashMap<String, PrimaryIndex<String, StoreEntity>>();
-	
-	public KeyValueStore(Databases databases){
-		for(Database db : databases.getDatabases()){
-			for(Table table : db.getTables()){
+
+	public KeyValueStore(Databases databases) {
+		for (Database db : databases.getDatabases()) {
+			for (Table table : db.getTables()) {
 				createStoreFile(Constants.TABLE, db.getName() + "." + table.getName());
-				for(UniqueKey uniqueKey : table.getUniqueKeys()){
-					createStoreFile(Constants.INDEX, db.getName()+"."+table.getName()+"."+uniqueKey.getAttributeName());
+				for (UniqueKey uniqueKey : table.getUniqueKeys()) {
+					createStoreFile(Constants.INDEX,
+							db.getName() + "." + table.getName() + "." + uniqueKey.getAttributeName());
 				}
 			}
 		}
@@ -42,9 +44,9 @@ public class KeyValueStore {
 		envConfig.setAllowCreate(true);
 		storeConfig.setAllowCreate(true);
 		try {
-			File file = new File("./"+type);
+			File file = new File("./" + type);
 			file.mkdir();
-			file = new File("./"+type+'/'+indexName);
+			file = new File("./" + type + '/' + indexName);
 			file.mkdir();
 			envMap.put(indexName, new Environment(file, envConfig));
 			storeMap.put(indexName, new EntityStore(envMap.get(indexName), "EntityStore", storeConfig));
@@ -53,9 +55,9 @@ public class KeyValueStore {
 			System.out.println("Cannot open db environment: " + dbe.getMessage());
 		}
 	}
-	
-	public void deleteTable(String tableName){
-		File table = new File("/tables/"+tableName);
+
+	public void deleteTable(String tableName) {
+		File table = new File("/tables/" + tableName);
 		envMap.remove(tableName);
 		storeMap.remove(tableName);
 		indexes.remove(tableName);
@@ -67,29 +69,29 @@ public class KeyValueStore {
 		row.setKey(key);
 		row.setData(data);
 		try {
-			PrimaryIndex<String,StoreEntity> index = indexes.get(database + "." + table.getName());
+			PrimaryIndex<String, StoreEntity> index = indexes.get(database + "." + table.getName());
 			StoreEntity entity = index.get(key);
-			if(entity != null){
+			if (entity != null) {
 				return "Row with primary key " + Arrays.asList(key.split("#")).toString() + " exists";
 			}
-			
+
 			index.put(row);
 		} catch (DatabaseException e) {
 			return "Cannot insert row: " + e.getMessage();
 		}
 		return "Row inserted";
 	}
-	
-	public String putRowInIndex(String database, String table, String attribute, String value, String primaryKey){
+
+	public String putRowInIndex(String database, String table, String attribute, String value, String primaryKey) {
 		StoreEntity row = new StoreEntity();
 		row.setKey(value);
 		row.setData(primaryKey);
-		try{
-			PrimaryIndex<String,StoreEntity> index = indexes.get(database + "." + table + "." + attribute);
+		try {
+			PrimaryIndex<String, StoreEntity> index = indexes.get(database + "." + table + "." + attribute);
 			index.put(row);
 			return null;
-		}catch (DatabaseException e) {
-			return "Error occured during update of index for "+attribute+": "+e.getMessage();
+		} catch (DatabaseException e) {
+			return "Error occured during update of index for " + attribute + ": " + e.getMessage();
 		}
 	}
 
@@ -101,17 +103,34 @@ public class KeyValueStore {
 		}
 		return "Row deleted";
 	}
-	
-	public String checkUnique(String database, String table, String attribute, String value){
-		PrimaryIndex<String,StoreEntity> index = indexes.get(database+"."+table+"."+attribute);
+
+	public String checkUnique(String database, String table, String attribute, String value) {
+		PrimaryIndex<String, StoreEntity> index = indexes.get(database + "." + table + "." + attribute);
 		try {
-			if(index.contains(value)){
-				return attribute + " already contains value "+value;
+			if (index.contains(value)) {
+				return attribute + " already contains value " + value;
 			}
 			return null;
 		} catch (DatabaseException e) {
-			return "Something went wrong when checking uniqueness: "+e.getMessage();
+			return "Something went wrong when checking uniqueness: " + e.getMessage();
 		}
+	}
+
+	public String checkForeignKey(String database, ForeignKey fk, String value) {
+		value = value+"#";
+		StringBuffer indexName = new StringBuffer(database + "." + fk.getRefTable());
+		PrimaryIndex<String, StoreEntity> indexPk = indexes.get(indexName.toString());
+		indexName.append("." + fk.getRefAttr());
+		PrimaryIndex<String, StoreEntity> index = indexes.get(indexName.toString());
+		try {
+			if ((index == null && indexPk == null) || (index != null && index.get(value) == null)
+					|| (indexPk != null && indexPk.get(value) == null)) {
+				return "Referenced key is not in " + fk.getRefTable() + "." + fk.getRefAttr();
+			}
+		} catch (DatabaseException e) {
+			return "Something went wrong when checking uniqueness: " + e.getMessage();
+		}
+		return null;
 	}
 
 	public void close() {
