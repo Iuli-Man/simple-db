@@ -1,6 +1,7 @@
 package ubb.berkeleydb;
 
 import java.io.File;
+import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -12,9 +13,11 @@ import com.sleepycat.persist.EntityStore;
 import com.sleepycat.persist.PrimaryIndex;
 import com.sleepycat.persist.StoreConfig;
 
+import ubb.model.Attribute;
 import ubb.model.Database;
 import ubb.model.Databases;
 import ubb.model.ForeignKey;
+import ubb.model.KeyType;
 import ubb.model.Table;
 import ubb.model.UniqueKey;
 import ubb.util.Constants;
@@ -57,11 +60,27 @@ public class KeyValueStore {
 	}
 
 	public void deleteTable(String tableName) {
-		File table = new File("/tables/" + tableName);
+		File table = new File("./tables/" + tableName);
 		envMap.remove(tableName);
 		storeMap.remove(tableName);
 		indexes.remove(tableName);
+		for (String s : table.list()) {
+			File currentFile = new File(table.getPath(), s);
+			currentFile.delete();
+		}
 		table.delete();
+	}
+
+	public void deleteIndex(String indexName) {
+		File index = new File("./indexes/" + indexName);
+		envMap.remove(indexName);
+		storeMap.remove(indexName);
+		indexes.remove(indexName);
+		for (String s : index.list()) {
+			File currentFile = new File(index.getPath(), s);
+			currentFile.delete();
+		}
+		index.delete();
 	}
 
 	public String putRow(String database, Table table, String key, String data) {
@@ -104,6 +123,29 @@ public class KeyValueStore {
 		return "Row deleted";
 	}
 
+	public String getValue(String database, Table table, String key, Attribute attribute){
+		try{
+			key+="#";
+			StoreEntity entity = indexes.get(database+"."+table.getName()).get(key);
+			if(entity != null){
+				String data = entity.getData();
+				String[] values = data.split("#");
+				int index = 0;
+				for(Attribute att: table.getStructure().getAttributes()){
+					if(att.equals(attribute)){
+						break;
+					}
+					if(att.getKeyType() != KeyType.PRIMARY_KEY)
+						index++;
+				}
+				return values[index];
+			}
+			return "Key not found";
+		}catch(DatabaseException e){
+			return "Cannot retrieve value " + e.getMessage();
+		}
+	}
+
 	public String checkUnique(String database, String table, String attribute, String value) {
 		PrimaryIndex<String, StoreEntity> index = indexes.get(database + "." + table + "." + attribute);
 		try {
@@ -117,7 +159,7 @@ public class KeyValueStore {
 	}
 
 	public String checkForeignKey(String database, ForeignKey fk, String value) {
-		String valuePk = value+"#";
+		String valuePk = value + "#";
 		StringBuffer indexName = new StringBuffer(database + "." + fk.getRefTable());
 		PrimaryIndex<String, StoreEntity> indexPk = indexes.get(indexName.toString());
 		indexName.append("." + fk.getRefAttr());
@@ -128,7 +170,7 @@ public class KeyValueStore {
 				return null;
 			}
 			// has primary key index
-			if(indexPk != null && indexPk.get(valuePk) != null){
+			if (indexPk != null && indexPk.get(valuePk) != null) {
 				return null;
 			}
 			return "Referenced key is not in " + fk.getRefTable() + "." + fk.getRefAttr();

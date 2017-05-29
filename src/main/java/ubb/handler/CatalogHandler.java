@@ -5,6 +5,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
+import java.util.ArrayList;
 import java.util.List;
 
 import com.google.gson.Gson;
@@ -96,31 +97,33 @@ public class CatalogHandler {
 		databases.getDatabases().remove(db);
 		return "Database " + dbName + " removed!";
 	}
-
-	public String createIndex(String tableName, String indexName, boolean unique, List<String> attributes) {
-		Table table = null;
-		for (Table t : currentDatabase.getTables()) {
-			if (t.getName().equals(tableName)) {
-				table = t;
-				break;
+	
+	public String createIndex(Table table, String indexName, boolean unique, String attributeName){
+		List<Attribute> attributes = new ArrayList<Attribute>();
+		for(Attribute att : table.getStructure().getAttributes()){
+			if(att.getName().equals(attributeName)){
+				attributes.add(att);
 			}
 		}
+		return this.createIndex(table, indexName, unique, attributes);
+	}
+
+	public String createIndex(Table table, String indexName, boolean unique, List<Attribute> attributes) {
 		if (table != null) {
 			IndexFile indexFile = new IndexFile();
 			indexFile.setIndexAttributes(attributes);
 			indexFile.setIndexName(indexName);
 			indexFile.setUnique(unique);
 			int keyLength = 0;
-			for (Attribute att : table.getStructure().getAttributes()) {
-				if (attributes.contains(att.getName())) {
+			for (Attribute att : attributes) {
 					keyLength += att.getLength();
-				}
 			}
 			indexFile.setKeyLength(keyLength);
 			table.getIndexFiles().add(indexFile);
+			this.store.createStoreFile(Constants.INDEX, indexName);
 			return "Index created!";
 		} else {
-			return "Table " + tableName + " does not exist!";
+			return "Table does not exist!";
 		}
 	}
 
@@ -169,16 +172,18 @@ public class CatalogHandler {
 		currentDatabase.getTables().add(newTable);
 		store.createStoreFile(Constants.TABLE, currentDatabase.getName() + "." + tableName);
 		for(UniqueKey uniqueKey : uniqueKeys){
-			store.createStoreFile(Constants.INDEX, currentDatabase.getName()+"."+tableName+"."+uniqueKey.getAttributeName());
+			this.createIndex(newTable, currentDatabase.getName()+"."+tableName+"."+uniqueKey.getAttributeName(), true, uniqueKey.getAttributeName());
 		}
 		return "Table " + tableName + " created!";
 	}
 
 	public String dropTable(String tableName) {
-		Table table = new Table();
-		table.setName(tableName);
-		if (!currentDatabase.getTables().contains(table)) {
+		Table table = getTable(tableName);
+		if (table == null) {
 			return "Table " + tableName + " does not exist!";
+		}
+		for(IndexFile index : table.getIndexFiles()){
+			store.deleteIndex(index.getIndexName());
 		}
 		currentDatabase.getTables().remove(table);
 		store.deleteTable(currentDatabase.getName() + "." + tableName);

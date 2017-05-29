@@ -1,6 +1,7 @@
 package ubb.handler;
 
 import ubb.berkeleydb.KeyValueStore;
+import ubb.model.Attribute;
 import ubb.model.ForeignKey;
 import ubb.model.Table;
 
@@ -22,6 +23,10 @@ public class DataHandler {
 	
 	public String deleteRow(String database, String tableName, String key) {
 		return store.deleteRow(database + "." + tableName, key);
+	}
+	
+	public String deleteIndexRow(String database, Table table, String key, Attribute attribute, String indexName){
+		return store.deleteRow(indexName, store.getValue(database, table, key, attribute));
 	}
 	
 	public String checkUnique(String database, String table, String attribute, String value){

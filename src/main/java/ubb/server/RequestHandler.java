@@ -14,6 +14,7 @@ import ubb.handler.CatalogHandler;
 import ubb.handler.DataHandler;
 import ubb.model.Attribute;
 import ubb.model.ForeignKey;
+import ubb.model.IndexFile;
 import ubb.model.KeyType;
 import ubb.model.PrimaryKey;
 import ubb.model.Table;
@@ -174,7 +175,7 @@ public class RequestHandler {
 		String[] tokens = line.split(" +");
 		String tableName, indexName;
 		boolean unique;
-		List<String> attributes;
+		List<String> attributesString;
 		if(Patterns.UNIQUE.getMatcher(line).find()){
 			indexName = tokens[3];
 			tableName = tokens[5];
@@ -184,8 +185,15 @@ public class RequestHandler {
 			tableName = tokens[4];
 			unique = false;
 		}
-		attributes = extractAttributes(line,false, Patterns.ATTRIBUTES);
-		return this.catHandler.createIndex(tableName, indexName, unique, attributes);
+		attributesString = extractAttributes(line,false, Patterns.ATTRIBUTES);
+		Table table = this.catHandler.getTable(tableName);
+		List<Attribute> attributes = new ArrayList<Attribute>();
+		for(Attribute a : table.getStructure().getAttributes()){
+			if(attributesString.contains(a.getName())){
+				attributes.add(a);
+			}
+		}
+		return this.catHandler.createIndex(table, indexName, unique, attributes);
 	}
 
 	private List<String> extractAttributes(String line, boolean values, Patterns pattern) {
@@ -267,6 +275,9 @@ public class RequestHandler {
 			return "The key attribute " + attribute + " does not exist";
 		}
 		else{
+			for(IndexFile index : table.getIndexFiles()){
+				dataHandler.deleteIndexRow(catHandler.getNameOfCurrentDatabase(), table, value, index.getIndexAttributes().get(0), index.getIndexName());
+			}
 			return dataHandler.deleteRow(catHandler.getNameOfCurrentDatabase(), tableName, value+"#");
 		}
 	}

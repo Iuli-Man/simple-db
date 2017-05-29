@@ -10,7 +10,7 @@ public class IndexFile implements Serializable{
 	private String indexName;
 	private int keyLength;
 	private boolean isUnique;
-	private List<String> indexAttributes;
+	private List<Attribute> indexAttributes;
 	
 	public String getIndexName() {
 		return indexName;
@@ -30,13 +30,13 @@ public class IndexFile implements Serializable{
 	public void setUnique(boolean isUnique) {
 		this.isUnique = isUnique;
 	}
-	public List<String> getIndexAttributes() {
+	public List<Attribute> getIndexAttributes() {
 		if(indexAttributes == null){
-			this.indexAttributes = new ArrayList<String>();
+			this.indexAttributes = new ArrayList<Attribute>();
 		}
 		return indexAttributes;
 	}
-	public void setIndexAttributes(List<String> indexAttributes) {
+	public void setIndexAttributes(List<Attribute> indexAttributes) {
 		this.indexAttributes = indexAttributes;
 	}
 	
