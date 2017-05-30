@@ -13,6 +13,7 @@ public class Table implements Serializable{
 	private List<ForeignKey> foreignKeys;
 	private List<UniqueKey> uniqueKeys;
 	private List<IndexFile> indexFiles;
+	private List<Table> referenceTables;
 
 	public Structure getStructure() {
 		return structure;
@@ -91,6 +92,17 @@ public class Table implements Serializable{
 
 	public void setForeignKeys(List<ForeignKey> foreignKeys) {
 		this.foreignKeys = foreignKeys;
+	}
+
+	public List<Table> getReferenceTables() {
+		if(referenceTables == null){
+			referenceTables = new ArrayList<Table>();
+		}
+		return referenceTables;
+	}
+
+	public void setReferenceTables(List<Table> referenceTables) {
+		this.referenceTables = referenceTables;
 	}
 	
 	

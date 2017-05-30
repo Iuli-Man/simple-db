@@ -26,7 +26,7 @@ public class DataHandler {
 	}
 	
 	public String deleteIndexRow(String database, Table table, String key, Attribute attribute, String indexName){
-		return store.deleteRow(indexName, store.getValue(database, table, key, attribute));
+		return store.deleteRow(indexName, store.getValue(database, table, key, attribute.getName()));
 	}
 	
 	public String checkUnique(String database, String table, String attribute, String value){
@@ -35,6 +35,15 @@ public class DataHandler {
 	
 	public String checkForeignKey(String database, ForeignKey fk, String value){
 		return store.checkForeignKey(database, fk, value);
+	}
+	
+	public String putRowInNonUniqueIndex(String database, String table, String attribute, String value, String primaryKey){
+		return store.putRowInNonUniqueIndex(database, table, attribute, value, primaryKey);
+	}
+	
+	public boolean checkExists(String database,Table refTable, Table table, String attribute, String value){
+		String key = store.getValue(database, refTable, value, attribute);
+		return store.checkExists(database+"."+table.getName()+"."+attribute, key);
 	}
 
 }

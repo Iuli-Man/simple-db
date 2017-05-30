@@ -17,6 +17,7 @@ import ubb.model.Attribute;
 import ubb.model.Database;
 import ubb.model.Databases;
 import ubb.model.ForeignKey;
+import ubb.model.IndexFile;
 import ubb.model.KeyType;
 import ubb.model.Table;
 import ubb.model.UniqueKey;
@@ -33,9 +34,8 @@ public class KeyValueStore {
 		for (Database db : databases.getDatabases()) {
 			for (Table table : db.getTables()) {
 				createStoreFile(Constants.TABLE, db.getName() + "." + table.getName());
-				for (UniqueKey uniqueKey : table.getUniqueKeys()) {
-					createStoreFile(Constants.INDEX,
-							db.getName() + "." + table.getName() + "." + uniqueKey.getAttributeName());
+				for (IndexFile index : table.getIndexFiles()){
+					createStoreFile(Constants.INDEX, index.getIndexName());
 				}
 			}
 		}
@@ -113,6 +113,25 @@ public class KeyValueStore {
 			return "Error occured during update of index for " + attribute + ": " + e.getMessage();
 		}
 	}
+	public String putRowInNonUniqueIndex(String database, String table, String attribute, String value, String primaryKey){
+		try{
+			PrimaryIndex<String, StoreEntity> index = indexes.get(database + "." + table + "." + attribute);
+			StoreEntity entity = index.get(value);
+			if(entity == null){
+				StoreEntity row = new StoreEntity();
+				row.setKey(value);
+				row.setData(primaryKey);
+				index.put(row);
+				return null;
+			}else{
+				entity.setData(entity.getData()+primaryKey);
+				index.put(entity);
+				return null;
+			}
+		}catch(DatabaseException e){
+			return "Cannot insert into non unique index " + e.getMessage();
+		}
+	}
 
 	public String deleteRow(String tableName, String key) {
 		try {
@@ -123,7 +142,7 @@ public class KeyValueStore {
 		return "Row deleted";
 	}
 
-	public String getValue(String database, Table table, String key, Attribute attribute){
+	public String getValue(String database, Table table, String key, String attribute){
 		try{
 			key+="#";
 			StoreEntity entity = indexes.get(database+"."+table.getName()).get(key);
@@ -178,7 +197,20 @@ public class KeyValueStore {
 			return "Something went wrong when checking index: " + e.getMessage();
 		}
 	}
-
+	
+	public boolean checkExists(String indexName, String key){
+		PrimaryIndex<String, StoreEntity> index = indexes.get(indexName);
+		try{
+			if(index != null && index.get(key) != null){
+				return true;
+			}else{
+				return false;
+			}
+		}catch(DatabaseException e){
+			return false;
+		}
+	}
+	
 	public void close() {
 		try {
 			for (Environment env : this.envMap.values()) {

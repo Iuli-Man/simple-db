@@ -245,6 +245,7 @@ public class RequestHandler {
 						if(message != null){
 							return message;
 						}
+						message = dataHandler.putRowInNonUniqueIndex(database, table.getName(), attribute.getName(), attributeValue, key.toString());
 					}
 					data.append(attributeValue).append(DATA_SEPARATOR);
 				}
@@ -275,6 +276,11 @@ public class RequestHandler {
 			return "The key attribute " + attribute + " does not exist";
 		}
 		else{
+			for(Table t : table.getReferenceTables()){
+				for(ForeignKey fk : t.getForeignKeys())
+					if(dataHandler.checkExists(catHandler.getNameOfCurrentDatabase(), table, t, fk.getAttName(), value))
+						return "Row is referenced by " + t.getName()+"."+fk.getAttName();
+			}
 			for(IndexFile index : table.getIndexFiles()){
 				dataHandler.deleteIndexRow(catHandler.getNameOfCurrentDatabase(), table, value, index.getIndexAttributes().get(0), index.getIndexName());
 			}

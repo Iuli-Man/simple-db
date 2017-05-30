@@ -162,6 +162,7 @@ public class CatalogHandler {
 			if(!contains){
 				return "Referenced key " + fk.getRefAttr() + " does not belong to table " + fk.getRefTable();
 			}
+			tb.getReferenceTables().add(newTable);
 		}
 		Structure structure = new Structure();
 		structure.setAttributes(attributes);
@@ -173,6 +174,9 @@ public class CatalogHandler {
 		store.createStoreFile(Constants.TABLE, currentDatabase.getName() + "." + tableName);
 		for(UniqueKey uniqueKey : uniqueKeys){
 			this.createIndex(newTable, currentDatabase.getName()+"."+tableName+"."+uniqueKey.getAttributeName(), true, uniqueKey.getAttributeName());
+		}
+		for(ForeignKey foreignKey : foreignKeys){
+			this.createIndex(newTable, currentDatabase.getName()+"."+tableName+"."+foreignKey.getAttName(), false, foreignKey.getAttName());
 		}
 		return "Table " + tableName + " created!";
 	}
