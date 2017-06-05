@@ -278,7 +278,7 @@ public class RequestHandler {
 		else{
 			for(Table t : table.getReferenceTables()){
 				for(ForeignKey fk : t.getForeignKeys())
-					if(dataHandler.checkExists(catHandler.getNameOfCurrentDatabase(), table, t, fk.getAttName(), value))
+					if(dataHandler.checkExists(catHandler.getNameOfCurrentDatabase(), table, t, value))
 						return "Row is referenced by " + t.getName()+"."+fk.getAttName();
 			}
 			for(IndexFile index : table.getIndexFiles()){

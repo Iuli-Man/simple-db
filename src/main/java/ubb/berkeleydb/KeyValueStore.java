@@ -4,11 +4,13 @@ import java.io.File;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 import com.sleepycat.je.DatabaseException;
 import com.sleepycat.je.Environment;
 import com.sleepycat.je.EnvironmentConfig;
+import com.sleepycat.persist.EntityCursor;
 import com.sleepycat.persist.EntityStore;
 import com.sleepycat.persist.PrimaryIndex;
 import com.sleepycat.persist.StoreConfig;
@@ -34,7 +36,7 @@ public class KeyValueStore {
 		for (Database db : databases.getDatabases()) {
 			for (Table table : db.getTables()) {
 				createStoreFile(Constants.TABLE, db.getName() + "." + table.getName());
-				for (IndexFile index : table.getIndexFiles()){
+				for (IndexFile index : table.getIndexFiles()) {
 					createStoreFile(Constants.INDEX, index.getIndexName());
 				}
 			}
@@ -113,22 +115,24 @@ public class KeyValueStore {
 			return "Error occured during update of index for " + attribute + ": " + e.getMessage();
 		}
 	}
-	public String putRowInNonUniqueIndex(String database, String table, String attribute, String value, String primaryKey){
-		try{
+
+	public String putRowInNonUniqueIndex(String database, String table, String attribute, String value,
+			String primaryKey) {
+		try {
 			PrimaryIndex<String, StoreEntity> index = indexes.get(database + "." + table + "." + attribute);
 			StoreEntity entity = index.get(value);
-			if(entity == null){
+			if (entity == null) {
 				StoreEntity row = new StoreEntity();
 				row.setKey(value);
 				row.setData(primaryKey);
 				index.put(row);
 				return null;
-			}else{
-				entity.setData(entity.getData()+primaryKey);
+			} else {
+				entity.setData(entity.getData() + primaryKey);
 				index.put(entity);
 				return null;
 			}
-		}catch(DatabaseException e){
+		} catch (DatabaseException e) {
 			return "Cannot insert into non unique index " + e.getMessage();
 		}
 	}
@@ -142,25 +146,25 @@ public class KeyValueStore {
 		return "Row deleted";
 	}
 
-	public String getValue(String database, Table table, String key, String attribute){
-		try{
-			key+="#";
-			StoreEntity entity = indexes.get(database+"."+table.getName()).get(key);
-			if(entity != null){
+	public String getValue(String database, Table table, String key, String attribute) {
+		try {
+			key += "#";
+			StoreEntity entity = indexes.get(database + "." + table.getName()).get(key);
+			if (entity != null) {
 				String data = entity.getData();
 				String[] values = data.split("#");
 				int index = 0;
-				for(Attribute att: table.getStructure().getAttributes()){
-					if(att.equals(attribute)){
+				for (Attribute att : table.getStructure().getAttributes()) {
+					if (att.equals(attribute)) {
 						break;
 					}
-					if(att.getKeyType() != KeyType.PRIMARY_KEY)
+					if (att.getKeyType() != KeyType.PRIMARY_KEY)
 						index++;
 				}
 				return values[index];
 			}
 			return "Key not found";
-		}catch(DatabaseException e){
+		} catch (DatabaseException e) {
 			return "Cannot retrieve value " + e.getMessage();
 		}
 	}
@@ -197,20 +201,44 @@ public class KeyValueStore {
 			return "Something went wrong when checking index: " + e.getMessage();
 		}
 	}
-	
-	public boolean checkExists(String indexName, String key){
+
+	public boolean checkExists(String indexName, String key) {
 		PrimaryIndex<String, StoreEntity> index = indexes.get(indexName);
-		try{
-			if(index != null && index.get(key) != null){
+		try {
+			if (index != null && index.get(key) != null) {
 				return true;
-			}else{
+			} else {
 				return false;
 			}
-		}catch(DatabaseException e){
+		} catch (DatabaseException e) {
 			return false;
 		}
 	}
-	
+
+	public boolean checkExists(String database, Table deleteTable, Table referenceTable, String value) {
+		PrimaryIndex<String, StoreEntity> index;
+		for (ForeignKey fk : referenceTable.getForeignKeys()) {
+			if (fk.getRefTable().equals(deleteTable.getName())) {
+				index = indexes.get(database + "." + referenceTable.getName() + "." + fk.getAttName());
+				if (index != null) {
+					try {
+						Iterator<StoreEntity> it;
+						it = index.entities().iterator();
+						while (it.hasNext()) {
+							StoreEntity entity = it.next();
+							if (entity.getData().contains(value)) {
+								return true;
+							}
+						}
+					} catch (DatabaseException e) {
+						System.err.println(e.getMessage());
+					}
+				}
+			}
+		}
+		return false;
+	}
+
 	public void close() {
 		try {
 			for (Environment env : this.envMap.values()) {

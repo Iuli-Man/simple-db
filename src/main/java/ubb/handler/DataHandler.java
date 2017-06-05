@@ -41,9 +41,8 @@ public class DataHandler {
 		return store.putRowInNonUniqueIndex(database, table, attribute, value, primaryKey);
 	}
 	
-	public boolean checkExists(String database,Table refTable, Table table, String attribute, String value){
-		String key = store.getValue(database, refTable, value, attribute);
-		return store.checkExists(database+"."+table.getName()+"."+attribute, key);
+	public boolean checkExists(String database,Table deleteTable, Table referenceTable, String value){
+		return store.checkExists(database, deleteTable, referenceTable, value);
 	}
 
 }
