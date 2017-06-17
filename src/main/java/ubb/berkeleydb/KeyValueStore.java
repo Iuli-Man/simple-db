@@ -2,9 +2,11 @@ package ubb.berkeleydb;
 
 import java.io.File;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import com.sleepycat.je.DatabaseException;
@@ -167,6 +169,24 @@ public class KeyValueStore {
 		} catch (DatabaseException e) {
 			return "Cannot retrieve value " + e.getMessage();
 		}
+	}
+
+	public List<String> getAllValues(String database, String table) {
+		ArrayList<String> values = new ArrayList<String>();
+		try {
+			PrimaryIndex<String, StoreEntity> index = indexes.get(database + "." + table);
+			if (index != null) {
+				EntityCursor<StoreEntity> cursor = index.entities();
+				for (StoreEntity row : cursor) {
+					values.add(row.getKey() + "#" + row.getData());
+					System.out.println(row.getKey() + "#" + row.getData());
+				}
+			} else
+				values.add("ERR#Table not found");
+		} catch (DatabaseException e) {
+			values.add("ERR#Cannot retrieve values " + e.getMessage());
+		}
+		return values;
 	}
 
 	public String checkUnique(String database, String table, String attribute, String value) {

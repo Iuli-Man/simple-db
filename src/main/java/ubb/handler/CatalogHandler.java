@@ -212,6 +212,12 @@ public class CatalogHandler {
 		return null;
 	}
 	
+	public List<String> getAllValues (String tablename){
+		String database = getNameOfCurrentDatabase();
+		return store.getAllValues(database, tablename);
+		
+	}
+	
 	public String getNameOfCurrentDatabase(){
 		return currentDatabase.getName();
 	}
