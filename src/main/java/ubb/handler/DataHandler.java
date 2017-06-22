@@ -1,10 +1,14 @@
 package ubb.handler;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import ubb.berkeleydb.KeyValueStore;
 import ubb.model.Attribute;
 import ubb.model.ForeignKey;
+import ubb.model.IndexFile;
 import ubb.model.Table;
 
 public class DataHandler {
@@ -49,6 +53,32 @@ public class DataHandler {
 	
 	public List<String> getAllValues(String database, String table){
 		return store.getAllValues(database, table);
+	}
+	
+	public List<String> getAllValues(String database, Table r1, Table r2, String p1, String p2){
+		List<String> result = new ArrayList<String>();
+		List<String> in1 = store.getAllValues(database, r1.getName());
+		Map<String, Integer> m = new HashMap<String, Integer>();
+		String index = "";
+		for(IndexFile i: r2.getIndexFiles()){
+			for(Attribute a: i.getIndexAttributes()){
+				if(a.getName().contains(p2)){
+					index = i.getIndexName();
+				}
+			}
+		}
+		int i = 0;
+		for(Attribute a: r1.getStructure().getAttributes()){
+			m.put(a.getName(), i++);
+		}
+		for(String line : in1){
+			String[] values = line.split("#");
+			List<String> in2 = store.getIndexValue(database, r2.getName(), index, values[m.get(p1)]);
+			for(String in2Line: in2){
+				result.add(line + in2Line);
+			}
+		}
+		return result;
 	}
 
 }

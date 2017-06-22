@@ -178,7 +178,7 @@ public class KeyValueStore {
 			if (index != null) {
 				EntityCursor<StoreEntity> cursor = index.entities();
 				for (StoreEntity row : cursor) {
-					values.add(row.getKey() + "#" + row.getData());
+					values.add(row.getKey() + row.getData());
 				}
 			} else
 				values.add("ERR#Table not found");
@@ -256,6 +256,22 @@ public class KeyValueStore {
 			}
 		}
 		return false;
+	}
+
+	public List<String> getIndexValue(String database, String table, String index, String value) {
+		List<String> result = new ArrayList<>();
+		try{
+		String pk = indexes.get(index).get(value).getData();
+		String[] keys = pk.split("#");
+		for(String k: keys){
+			StoreEntity e = indexes.get(database+"."+table).get(k+"#");
+			result.add(e.getKey()+e.getData());
+		}
+		return result;
+		}catch(DatabaseException e){
+			System.err.println(e.getMessage());
+			return null;
+		}
 	}
 
 	public void close() {

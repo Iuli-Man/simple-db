@@ -7,7 +7,9 @@ import java.io.IOException;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 
 import ubb.handler.CatalogHandler;
@@ -297,7 +299,7 @@ public class RequestHandler {
 		List<String> result = null;
 		switch (object){
 		case "*":
-			result = handleSelectAll(catHandler.getNameOfCurrentDatabase(),tokens[3]);
+			result = handleSelectAll(line);
 			break;
 		default:
 			writer.writeBytes("Operation not found!\n");
@@ -311,8 +313,36 @@ public class RequestHandler {
 		}
 	}
 
-	private List<String> handleSelectAll(String database, String table) {
-		return dataHandler.getAllValues(database, table);
+	private List<String> handleSelectAll(String line) {
+		String[] tokens = line.split(" ");
+		String object = tokens[1];
+		if(line.contains("JOIN")){
+			return handleJoin(line);
+		}
+		return dataHandler.getAllValues(catHandler.getNameOfCurrentDatabase(),tokens[3]);
+	}
+	
+	private List<String> handleJoin(String line){
+		String table1 = line.split(" ")[3];
+		String t1 = line.split(" ")[4];
+		Matcher matcher = Patterns.JOIN.getMatcher(line);
+		matcher.find();
+		String join = matcher.group();
+		String[] tokens = join.split(" ");
+		String table2 = tokens[1];
+		String t2 = tokens[2];
+		String[] p = tokens[4].split("=");
+		String[] p1 = p[0].split("\\.");
+		String[] p2 = p[1].split("\\.");
+		String pr1, pr2;
+		if(p1[0].equals(t1)){
+			pr1 = p1[1];
+			pr2 = p2[1];
+		}else{
+			pr1 = p2[1];
+			pr2 = p1[1];
+		}
+		return dataHandler.getAllValues(catHandler.getNameOfCurrentDatabase(), catHandler.getTable(table1), catHandler.getTable(table2), pr1, pr2);
 	}
 
 }
