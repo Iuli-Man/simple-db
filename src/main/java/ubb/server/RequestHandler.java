@@ -73,6 +73,9 @@ public class RequestHandler {
 			message = handleDelete(line);
 			writer.writeBytes(message + '\n');
 			break;
+		case "SELECT":
+			handleSelect(line);
+			break;
 		default:
 			writer.writeBytes("Unknown action: " + action + '\n');
 			break;
@@ -286,6 +289,30 @@ public class RequestHandler {
 			}
 			return dataHandler.deleteRow(catHandler.getNameOfCurrentDatabase(), tableName, value+"#");
 		}
+	}
+	
+	private void handleSelect(String line) throws IOException{
+		String[] tokens = line.split(" ");
+		String object = tokens[1];
+		List<String> result = null;
+		switch (object){
+		case "*":
+			result = handleSelectAll(catHandler.getNameOfCurrentDatabase(),tokens[3]);
+			break;
+		default:
+			writer.writeBytes("Operation not found!\n");
+			break;
+		}
+		if(result!=null){
+			for(String s: result){
+				writer.writeBytes(s+"/");
+			}
+			writer.writeBytes("end\n");
+		}
+	}
+
+	private List<String> handleSelectAll(String database, String table) {
+		return dataHandler.getAllValues(database, table);
 	}
 
 }

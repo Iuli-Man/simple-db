@@ -1,5 +1,7 @@
 package ubb.handler;
 
+import java.util.List;
+
 import ubb.berkeleydb.KeyValueStore;
 import ubb.model.Attribute;
 import ubb.model.ForeignKey;
@@ -43,6 +45,10 @@ public class DataHandler {
 	
 	public boolean checkExists(String database,Table deleteTable, Table referenceTable, String value){
 		return store.checkExists(database, deleteTable, referenceTable, value);
+	}
+	
+	public List<String> getAllValues(String database, String table){
+		return store.getAllValues(database, table);
 	}
 
 }

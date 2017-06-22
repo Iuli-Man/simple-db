@@ -179,7 +179,6 @@ public class KeyValueStore {
 				EntityCursor<StoreEntity> cursor = index.entities();
 				for (StoreEntity row : cursor) {
 					values.add(row.getKey() + "#" + row.getData());
-					System.out.println(row.getKey() + "#" + row.getData());
 				}
 			} else
 				values.add("ERR#Table not found");
