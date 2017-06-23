@@ -213,7 +213,7 @@ public class KeyValueStore {
 		return values;
 	}
 
-	public List<String> getAllWithSelection(String database, Table table, List<String> conditions) {
+	public List<String> getAllWithSelection(String database, Table table, List<String> conditions, ArrayList<Boolean> attrlist) {
 		ArrayList<String> values = new ArrayList<String>();
 		ArrayList<String> condlist = new ArrayList<String>();
 		List<Attribute> attributes = table.getStructure().getAttributes();
@@ -237,13 +237,16 @@ public class KeyValueStore {
 				for (StoreEntity row : cursor) {
 					String output = row.getKey() + row.getData();
 					String[] tokens = output.split("#");
+					String filteredOutput ="";
 					boolean valid = true;
 					for (int i = 0; i < attributes.size(); i++) {
 						if (condlist.get(i) != null && !condlist.get(i).equals(tokens[i]))
 							valid = false;
+						if(attrlist==null||attrlist.get(i))
+							filteredOutput+=tokens[i]+"#";
 					}
 					if (valid)
-						values.add(row.getKey() + row.getData());
+						values.add(filteredOutput);
 				}
 			} else
 				values.add("ERR#Table not found");

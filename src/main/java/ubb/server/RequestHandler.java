@@ -300,7 +300,7 @@ public class RequestHandler {
 		List<String> result = null;
 		switch (object) {
 		case "*":
-			result = handleSelectAll(line);
+			result = handleSelectAll(line,null);
 			break;
 		default:
 			result = handleSelectProjection(line);
@@ -313,19 +313,43 @@ public class RequestHandler {
 			}
 			writer.writeBytes("end\n");
 		}
+		else{
+			writer.writeBytes("One of the columns does not exist!/end\n");
+		}
 	}
+
 
 	private List<String> handleSelectProjection(String line) {
-		// TODO Auto-generated method stub
-		return null;
+		String[] tokens = line.split(" ");
+		String[] selectedAttr = tokens[1].split(",");
+
+		ArrayList<Boolean> attrlist = new ArrayList<Boolean>();
+		List<Attribute> attributes = catHandler.getTableByName(tokens[3]).getStructure().getAttributes();
+		for (String col:selectedAttr){
+			Attribute a = new Attribute();
+			a.setName(col);
+			if(!attributes.contains(a)){
+				return null;
+			}
+		}
+			
+		for (int i = 0; i < attributes.size(); i++) {
+			Attribute attr = attributes.get(i);
+			boolean found = false;
+			for (String col : selectedAttr) {
+				if (col.equals(attr.getName())) {
+					attrlist.add(true);
+					found = true;
+				}
+			}
+			if (!found)
+				attrlist.add(false);
+		}
+		
+		return handleSelectAll(line,attrlist);
 	}
 
-	private List<String> handleProjection(List<String> result) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	private List<String> handleSelectAll(String line) {
+	private List<String> handleSelectAll(String line, ArrayList<Boolean> attrlist) {
 		ArrayList<String> conditions = new ArrayList<String>();
 		if (line.contains("WHERE")) {
 			Matcher matcher = Patterns.CONDITION.getMatcher(line);
@@ -337,11 +361,9 @@ public class RequestHandler {
 		String[] tokens = line.split(" ");
 		if (line.contains("JOIN")) {
 			return handleJoin(line);
-		} else if (conditions == null || conditions.isEmpty()) {
-			return dataHandler.getAllValues(catHandler.getNameOfCurrentDatabase(), tokens[3]);
 		} else {
 			return dataHandler.getAllWithSelection(catHandler.getNameOfCurrentDatabase(),
-					catHandler.getTable(tokens[3]), conditions);
+					catHandler.getTable(tokens[3]), conditions,attrlist);
 		}
 	}
 

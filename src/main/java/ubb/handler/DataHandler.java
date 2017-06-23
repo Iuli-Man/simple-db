@@ -52,8 +52,8 @@ public class DataHandler {
 		return store.checkExists(database, deleteTable, referenceTable, value);
 	}
 	
-	public List<String> getAllWithSelection(String database, Table table,List<String> conditions){
-		return store.getAllWithSelection(database, table, conditions);
+	public List<String> getAllWithSelection(String database, Table table,List<String> conditions, ArrayList<Boolean> attrlist){
+		return store.getAllWithSelection(database, table, conditions,attrlist);
 	}
 	
 	public List<String> getAllValues(String database, String table){
