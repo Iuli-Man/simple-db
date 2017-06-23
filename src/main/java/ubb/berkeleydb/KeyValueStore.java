@@ -1,21 +1,12 @@
 package ubb.berkeleydb;
 
 import java.io.File;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-
-import com.sleepycat.je.DatabaseException;
-import com.sleepycat.je.Environment;
-import com.sleepycat.je.EnvironmentConfig;
-import com.sleepycat.persist.EntityCursor;
-import com.sleepycat.persist.EntityStore;
-import com.sleepycat.persist.PrimaryIndex;
-import com.sleepycat.persist.StoreConfig;
 
 import ubb.model.Attribute;
 import ubb.model.Database;
@@ -24,8 +15,16 @@ import ubb.model.ForeignKey;
 import ubb.model.IndexFile;
 import ubb.model.KeyType;
 import ubb.model.Table;
-import ubb.model.UniqueKey;
 import ubb.util.Constants;
+
+import com.sleepycat.je.DatabaseException;
+import com.sleepycat.je.Environment;
+import com.sleepycat.je.EnvironmentConfig;
+import com.sleepycat.je.Transaction;
+import com.sleepycat.persist.EntityCursor;
+import com.sleepycat.persist.EntityStore;
+import com.sleepycat.persist.PrimaryIndex;
+import com.sleepycat.persist.StoreConfig;
 
 public class KeyValueStore {
 
@@ -49,6 +48,7 @@ public class KeyValueStore {
 		EnvironmentConfig envConfig = new EnvironmentConfig();
 		StoreConfig storeConfig = new StoreConfig();
 		envConfig.setAllowCreate(true);
+		envConfig.setTransactional(true);
 		storeConfig.setAllowCreate(true);
 		try {
 			File file = new File("./" + type);
@@ -88,17 +88,21 @@ public class KeyValueStore {
 	}
 
 	public String putRow(String database, Table table, String key, String data) {
+		String indexName = database + "." + table.getName();
 		StoreEntity row = new StoreEntity();
 		row.setKey(key);
 		row.setData(data);
 		try {
-			PrimaryIndex<String, StoreEntity> index = indexes.get(database + "." + table.getName());
+			Transaction t = envMap.get(indexName).beginTransaction(null, null);
+			PrimaryIndex<String, StoreEntity> index = indexes.get(indexName);
 			StoreEntity entity = index.get(key);
 			if (entity != null) {
+				t.abort();
 				return "Row with primary key " + Arrays.asList(key.split("#")).toString() + " exists";
 			}
 
 			index.put(row);
+			t.commit();
 		} catch (DatabaseException e) {
 			return "Cannot insert row: " + e.getMessage();
 		}
@@ -109,9 +113,12 @@ public class KeyValueStore {
 		StoreEntity row = new StoreEntity();
 		row.setKey(value);
 		row.setData(primaryKey);
+		String indexName = database + "." + table + "." + attribute;
 		try {
-			PrimaryIndex<String, StoreEntity> index = indexes.get(database + "." + table + "." + attribute);
+			Transaction t = envMap.get(indexName).beginTransaction(null, null);
+			PrimaryIndex<String, StoreEntity> index = indexes.get(indexName);
 			index.put(row);
+			t.commit();
 			return null;
 		} catch (DatabaseException e) {
 			return "Error occured during update of index for " + attribute + ": " + e.getMessage();
@@ -121,17 +128,21 @@ public class KeyValueStore {
 	public String putRowInNonUniqueIndex(String database, String table, String attribute, String value,
 			String primaryKey) {
 		try {
-			PrimaryIndex<String, StoreEntity> index = indexes.get(database + "." + table + "." + attribute);
+			String indexName = database + "." + table + "." + attribute;
+			Transaction t = envMap.get(indexName).beginTransaction(null, null);
+			PrimaryIndex<String, StoreEntity> index = indexes.get(indexName);
 			StoreEntity entity = index.get(value);
 			if (entity == null) {
 				StoreEntity row = new StoreEntity();
 				row.setKey(value);
 				row.setData(primaryKey);
 				index.put(row);
+				t.commit();
 				return null;
 			} else {
 				entity.setData(entity.getData() + primaryKey);
 				index.put(entity);
+				t.commit();
 				return null;
 			}
 		} catch (DatabaseException e) {
@@ -141,7 +152,9 @@ public class KeyValueStore {
 
 	public String deleteRow(String tableName, String key) {
 		try {
+			Transaction t = envMap.get(tableName).beginTransaction(null, null);
 			indexes.get(tableName).delete(key);
+			t.commit();
 		} catch (DatabaseException e) {
 			return "Cannot delete row: " + e.getMessage();
 		}
@@ -259,13 +272,21 @@ public class KeyValueStore {
 	}
 
 	public List<String> getIndexValue(String database, String table, String index, String value) {
-		List<String> result = new ArrayList<>();
+		List<String> result = new ArrayList<String>();
 		try{
-		String pk = indexes.get(index).get(value).getData();
-		String[] keys = pk.split("#");
+		StoreEntity pk = indexes.get(index).get(value);
+		if(value.contains("#") && pk!=null){
+			result.add(pk.getKey()+pk.getData());
+			return result;
+		}
+		if(pk!=null){
+		String[] keys = pk.getData().split("#");
 		for(String k: keys){
 			StoreEntity e = indexes.get(database+"."+table).get(k+"#");
+			if(e!=null){
 			result.add(e.getKey()+e.getData());
+			}
+		}
 		}
 		return result;
 		}catch(DatabaseException e){
