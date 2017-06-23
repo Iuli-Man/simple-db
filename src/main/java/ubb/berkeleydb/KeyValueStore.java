@@ -1,12 +1,21 @@
 package ubb.berkeleydb;
 
 import java.io.File;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+
+import com.sleepycat.je.DatabaseException;
+import com.sleepycat.je.Environment;
+import com.sleepycat.je.EnvironmentConfig;
+import com.sleepycat.persist.EntityCursor;
+import com.sleepycat.persist.EntityStore;
+import com.sleepycat.persist.PrimaryIndex;
+import com.sleepycat.persist.StoreConfig;
 
 import ubb.model.Attribute;
 import ubb.model.Database;
@@ -15,6 +24,7 @@ import ubb.model.ForeignKey;
 import ubb.model.IndexFile;
 import ubb.model.KeyType;
 import ubb.model.Table;
+import ubb.model.UniqueKey;
 import ubb.util.Constants;
 
 import com.sleepycat.je.DatabaseException;
@@ -198,6 +208,50 @@ public class KeyValueStore {
 		} catch (DatabaseException e) {
 			values.add("ERR#Cannot retrieve values " + e.getMessage());
 		}
+		if (values.isEmpty())
+			values.add("Table is empty!");
+		return values;
+	}
+
+	public List<String> getAllWithSelection(String database, Table table, List<String> conditions) {
+		ArrayList<String> values = new ArrayList<String>();
+		ArrayList<String> condlist = new ArrayList<String>();
+		List<Attribute> attributes = table.getStructure().getAttributes();
+		for (int i = 0; i < attributes.size(); i++) {
+			Attribute attr = attributes.get(i);
+			boolean found = false;
+			for (String cond : conditions) {
+				String[] tokens = cond.split("=");
+				if (tokens[0].equals(attr.getName())) {
+					condlist.add(tokens[1]);
+					found = true;
+				}
+			}
+			if (!found)
+				condlist.add(null);
+		}
+		try {
+			PrimaryIndex<String, StoreEntity> index = indexes.get(database + "." + table.getName());
+			if (index != null) {
+				EntityCursor<StoreEntity> cursor = index.entities();
+				for (StoreEntity row : cursor) {
+					String output = row.getKey() + row.getData();
+					String[] tokens = output.split("#");
+					boolean valid = true;
+					for (int i = 0; i < attributes.size(); i++) {
+						if (condlist.get(i) != null && !condlist.get(i).equals(tokens[i]))
+							valid = false;
+					}
+					if (valid)
+						values.add(row.getKey() + row.getData());
+				}
+			} else
+				values.add("ERR#Table not found");
+		} catch (DatabaseException e) {
+			values.add("ERR#Cannot retrieve values " + e.getMessage());
+		}
+		if (values.size() == 0)
+			values.add("Result is empty!");
 		return values;
 	}
 
@@ -273,7 +327,7 @@ public class KeyValueStore {
 
 	public List<String> getIndexValue(String database, String table, String index, String value) {
 		List<String> result = new ArrayList<String>();
-		try{
+		try {
 		StoreEntity pk = indexes.get(index).get(value);
 		if(value.contains("#") && pk!=null){
 			result.add(pk.getKey()+pk.getData());
@@ -281,15 +335,15 @@ public class KeyValueStore {
 		}
 		if(pk!=null){
 		String[] keys = pk.getData().split("#");
-		for(String k: keys){
-			StoreEntity e = indexes.get(database+"."+table).get(k+"#");
+			for (String k : keys) {
+				StoreEntity e = indexes.get(database + "." + table).get(k + "#");
 			if(e!=null){
-			result.add(e.getKey()+e.getData());
+				result.add(e.getKey() + e.getData());
 			}
 		}
 		}
-		return result;
-		}catch(DatabaseException e){
+			return result;
+		} catch (DatabaseException e) {
 			System.err.println(e.getMessage());
 			return null;
 		}

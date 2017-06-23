@@ -13,7 +13,9 @@ public enum Patterns {
 	NOT_NULL("NOT NULL"),
 	UNIQUE("UNIQUE"),
 	FOREIGN_KEY("FOREIGN KEY"),
+	CONDITION("[A-Z_a-z0-9]+=[A-Z_a-z0-9]+"),
 	JOIN("JOIN [A-Z_a-z0-9]+ [A-Za-z0-9]+ ON [A-Za-z0-9]+\\.[A-Z_a-z0-9]+=[A-Za-z0-9]+\\.[A-Z_a-z0-9]+");
+	
 	
 	private String pattern;
 	private Patterns(String pattern){

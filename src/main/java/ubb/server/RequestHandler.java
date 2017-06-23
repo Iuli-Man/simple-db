@@ -7,9 +7,7 @@ import java.io.IOException;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Matcher;
 
 import ubb.handler.CatalogHandler;
@@ -52,8 +50,8 @@ public class RequestHandler {
 			System.out.println("Could not read/write from/to client: " + e.getMessage());
 		}
 	}
-	
-	private void handleLine(String line) throws IOException{
+
+	private void handleLine(String line) throws IOException {
 		String[] tokens = line.split(" ");
 		String action = tokens[0];
 		switch (action) {
@@ -83,8 +81,8 @@ public class RequestHandler {
 			break;
 		}
 	}
-	
-	private void handleCreate(String line) throws IOException{
+
+	private void handleCreate(String line) throws IOException {
 		String[] tokens = line.split(" ");
 		String object = tokens[1];
 		String message;
@@ -107,8 +105,8 @@ public class RequestHandler {
 		}
 		writer.writeBytes(message + '\n');
 	}
-	
-	private void handleDrop(String line) throws IOException{
+
+	private void handleDrop(String line) throws IOException {
 		String[] tokens = line.split(" ");
 		String object = tokens[1];
 		String message;
@@ -125,42 +123,42 @@ public class RequestHandler {
 		}
 		writer.writeBytes(message + '\n');
 	}
-	
-	private String handleCreateTable(String line){
+
+	private String handleCreateTable(String line) {
 		String tableName = line.split("[ \\(\\)]")[2];
 		List<String> attributes = extractAttributes(line, false, Patterns.TABLE_ATTRIBUTES);
 		PrimaryKey primaryKey = new PrimaryKey();
 		List<UniqueKey> uniqueKeys = new ArrayList<UniqueKey>();
 		List<Attribute> attributesList = new ArrayList<Attribute>();
 		List<ForeignKey> foreignKeys = new ArrayList<ForeignKey>();
-		for(String a : attributes){
+		for (String a : attributes) {
 			Attribute aModel = new Attribute();
 			String name = a.split(" ")[0];
 			aModel.setName(name);
-			if(Patterns.CHAR.getMatcher(a).find()){
+			if (Patterns.CHAR.getMatcher(a).find()) {
 				aModel.setType(AttributeType.CHAR);
 				Matcher matcher = Patterns.ATTRIBUTES.getMatcher(a);
 				matcher.find();
 				String length = matcher.group();
-				length = length.substring(1, length.length()-1);
+				length = length.substring(1, length.length() - 1);
 				aModel.setLength(Integer.parseInt(length));
-			}else{
+			} else {
 				aModel.setType(AttributeType.NUMBER);
 				aModel.setLength(8);
 			}
 			aModel.setNull(!Patterns.NOT_NULL.getMatcher(a).find());
-			if(Patterns.UNIQUE.getMatcher(a).find()){
+			if (Patterns.UNIQUE.getMatcher(a).find()) {
 				UniqueKey uniqueKey = new UniqueKey();
 				uniqueKey.setAttributeName(name);
 				uniqueKeys.add(uniqueKey);
 				aModel.setKeyType(KeyType.UNIQUE_KEY);
 			}
-			if(Patterns.PRIMARY_KEY.getMatcher(a).find()){
+			if (Patterns.PRIMARY_KEY.getMatcher(a).find()) {
 				primaryKey.getAttributeName().add(name);
 				aModel.setNull(false);
 				aModel.setKeyType(KeyType.PRIMARY_KEY);
 			}
-			if(Patterns.FOREIGN_KEY.getMatcher(a).find()){
+			if (Patterns.FOREIGN_KEY.getMatcher(a).find()) {
 				ForeignKey fk = new ForeignKey();
 				String table = a.substring(a.indexOf("FOREIGN KEY ON") + 15);
 				table = table.trim();
@@ -175,26 +173,26 @@ public class RequestHandler {
 		}
 		return this.catHandler.createTable(tableName, attributesList, primaryKey, uniqueKeys, foreignKeys);
 	}
-	
-	private String handleCreateIndex(String line){
+
+	private String handleCreateIndex(String line) {
 		String[] tokens = line.split(" +");
 		String tableName, indexName;
 		boolean unique;
 		List<String> attributesString;
-		if(Patterns.UNIQUE.getMatcher(line).find()){
+		if (Patterns.UNIQUE.getMatcher(line).find()) {
 			indexName = tokens[3];
 			tableName = tokens[5];
 			unique = true;
-		}else{
+		} else {
 			indexName = tokens[2];
 			tableName = tokens[4];
 			unique = false;
 		}
-		attributesString = extractAttributes(line,false, Patterns.ATTRIBUTES);
+		attributesString = extractAttributes(line, false, Patterns.ATTRIBUTES);
 		Table table = this.catHandler.getTable(tableName);
 		List<Attribute> attributes = new ArrayList<Attribute>();
-		for(Attribute a : table.getStructure().getAttributes()){
-			if(attributesString.contains(a.getName())){
+		for (Attribute a : table.getStructure().getAttributes()) {
+			if (attributesString.contains(a.getName())) {
 				attributes.add(a);
 			}
 		}
@@ -205,124 +203,149 @@ public class RequestHandler {
 		List<String> attributes;
 		Matcher matcher = pattern.getMatcher(line);
 		matcher.find();
-		if(values){
+		if (values) {
 			matcher.find();
 		}
 		String attributesString = matcher.group();
-		attributesString = attributesString.substring(1, attributesString.length()-1);
+		attributesString = attributesString.substring(1, attributesString.length() - 1);
 		attributes = Arrays.asList(attributesString.split("[ ]*,[ ]*"));
 		return attributes;
 	}
-	
-	private String handleInsert(String line) throws IOException{
+
+	private String handleInsert(String line) throws IOException {
 		String tableName = line.split(" +")[2];
 		String database = catHandler.getCurrentDatabase().getName();
-		List<String> attributes = extractAttributes(line,false, Patterns.ATTRIBUTES);
-		List<String> values = extractAttributes(line,true, Patterns.ATTRIBUTES);
+		List<String> attributes = extractAttributes(line, false, Patterns.ATTRIBUTES);
+		List<String> values = extractAttributes(line, true, Patterns.ATTRIBUTES);
 		Table table = catHandler.getTable(tableName);
-		if(table == null){
+		if (table == null) {
 			return "Table " + tableName + " does not exist";
 		}
 		StringBuilder key = new StringBuilder();
 		StringBuilder data = new StringBuilder();
 		int processedAttributes = 0;
-		for(Attribute attribute : table.getStructure().getAttributes()){
-			if(attributes.contains(attribute.getName())){
+		for (Attribute attribute : table.getStructure().getAttributes()) {
+			if (attributes.contains(attribute.getName())) {
 				String attributeValue = values.get(attributes.indexOf(attribute.getName()));
-				if(attribute.getKeyType() == KeyType.PRIMARY_KEY){
+				if (attribute.getKeyType() == KeyType.PRIMARY_KEY) {
 					key.append(attributeValue).append(DATA_SEPARATOR);
-				}else{
-					if(attribute.getKeyType() == KeyType.UNIQUE_KEY){
-						String message = dataHandler.checkUnique(database, table.getName(), attribute.getName(), attributeValue);
-						if(message != null)
+				} else {
+					if (attribute.getKeyType() == KeyType.UNIQUE_KEY) {
+						String message = dataHandler.checkUnique(database, table.getName(), attribute.getName(),
+								attributeValue);
+						if (message != null)
 							return message;
-						dataHandler.insertIndex(database, table.getName(), attribute.getName(), attributeValue, key.toString());
+						dataHandler.insertIndex(database, table.getName(), attribute.getName(), attributeValue,
+								key.toString());
 					}
-					if(attribute.getKeyType() == KeyType.FOREIGN_KEY){
+					if (attribute.getKeyType() == KeyType.FOREIGN_KEY) {
 						ForeignKey foreignKey = null;
-						for(ForeignKey fk : table.getForeignKeys()){
-							if(fk.getAttName().equals(attribute.getName())){
+						for (ForeignKey fk : table.getForeignKeys()) {
+							if (fk.getAttName().equals(attribute.getName())) {
 								foreignKey = fk;
 								break;
 							}
 						}
 						String message = dataHandler.checkForeignKey(database, foreignKey, attributeValue);
-						if(message != null){
+						if (message != null) {
 							return message;
 						}
-						message = dataHandler.putRowInNonUniqueIndex(database, table.getName(), attribute.getName(), attributeValue, key.toString());
+						message = dataHandler.putRowInNonUniqueIndex(database, table.getName(), attribute.getName(),
+								attributeValue, key.toString());
 					}
 					data.append(attributeValue).append(DATA_SEPARATOR);
 				}
 				processedAttributes++;
-			}else{
-				if(attribute.isNull())
+			} else {
+				if (attribute.isNull())
 					data.append("null").append(DATA_SEPARATOR);
 				else
 					return attribute.getName() + " cannot be null";
 			}
 		}
-		if(attributes.size() != processedAttributes)
+		if (attributes.size() != processedAttributes)
 			return "Not all attributes are in table " + tableName;
 		return dataHandler.insertRow(database, table, key.toString(), data.toString());
 	}
-	
-	private String handleDelete(String line){
+
+	private String handleDelete(String line) {
 		String[] words = line.split(" +");
 		String tableName = words[2];
 		String attribute = words[4];
 		String value = words[6];
 		Table table = catHandler.getTableByName(tableName);
-		if(table == null){
+		if (table == null) {
 			return "Table " + tableName + " does not exist";
 		}
 		PrimaryKey key = table.getPrimaryKey();
-		if(key.getAttributeName().isEmpty()||!key.getAttributeName().get(0).equals(attribute)){
+		if (key.getAttributeName().isEmpty() || !key.getAttributeName().get(0).equals(attribute)) {
 			return "The key attribute " + attribute + " does not exist";
-		}
-		else{
-			for(Table t : table.getReferenceTables()){
-				for(ForeignKey fk : t.getForeignKeys())
-					if(dataHandler.checkExists(catHandler.getNameOfCurrentDatabase(), table, t, value))
-						return "Row is referenced by " + t.getName()+"."+fk.getAttName();
+		} else {
+			for (Table t : table.getReferenceTables()) {
+				for (ForeignKey fk : t.getForeignKeys())
+					if (dataHandler.checkExists(catHandler.getNameOfCurrentDatabase(), table, t, value))
+						return "Row is referenced by " + t.getName() + "." + fk.getAttName();
 			}
-			for(IndexFile index : table.getIndexFiles()){
-				dataHandler.deleteIndexRow(catHandler.getNameOfCurrentDatabase(), table, value, index.getIndexAttributes().get(0), index.getIndexName());
+			for (IndexFile index : table.getIndexFiles()) {
+				dataHandler.deleteIndexRow(catHandler.getNameOfCurrentDatabase(), table, value,
+						index.getIndexAttributes().get(0), index.getIndexName());
 			}
-			return dataHandler.deleteRow(catHandler.getNameOfCurrentDatabase(), tableName, value+"#");
+			return dataHandler.deleteRow(catHandler.getNameOfCurrentDatabase(), tableName, value + "#");
 		}
 	}
-	
-	private void handleSelect(String line) throws IOException{
+
+	private void handleSelect(String line) throws IOException {
 		String[] tokens = line.split(" ");
 		String object = tokens[1];
 		List<String> result = null;
-		switch (object){
+		switch (object) {
 		case "*":
 			result = handleSelectAll(line);
 			break;
 		default:
-			writer.writeBytes("Operation not found!\n");
+			result = handleSelectProjection(line);
 			break;
 		}
-		if(result!=null){
-			for(String s: result){
-				writer.writeBytes(s+"/");
+
+		if (result != null) {
+			for (String s : result) {
+				writer.writeBytes(s + "/");
 			}
 			writer.writeBytes("end\n");
 		}
 	}
 
-	private List<String> handleSelectAll(String line) {
-		String[] tokens = line.split(" ");
-		String object = tokens[1];
-		if(line.contains("JOIN")){
-			return handleJoin(line);
-		}
-		return dataHandler.getAllValues(catHandler.getNameOfCurrentDatabase(),tokens[3]);
+	private List<String> handleSelectProjection(String line) {
+		// TODO Auto-generated method stub
+		return null;
 	}
-	
-	private List<String> handleJoin(String line){
+
+	private List<String> handleProjection(List<String> result) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	private List<String> handleSelectAll(String line) {
+		ArrayList<String> conditions = new ArrayList<String>();
+		if (line.contains("WHERE")) {
+			Matcher matcher = Patterns.CONDITION.getMatcher(line);
+			while (matcher.find()) {
+				String cond = matcher.group();
+				conditions.add(cond);
+			}
+		}
+		String[] tokens = line.split(" ");
+		if (line.contains("JOIN")) {
+			return handleJoin(line);
+		} else if (conditions == null || conditions.isEmpty()) {
+			return dataHandler.getAllValues(catHandler.getNameOfCurrentDatabase(), tokens[3]);
+		} else {
+			return dataHandler.getAllWithSelection(catHandler.getNameOfCurrentDatabase(),
+					catHandler.getTable(tokens[3]), conditions);
+		}
+	}
+
+	private List<String> handleJoin(String line) {
 		String table1 = line.split(" ")[3];
 		String t1 = line.split(" ")[4];
 		Matcher matcher = Patterns.JOIN.getMatcher(line);
@@ -335,14 +358,15 @@ public class RequestHandler {
 		String[] p1 = p[0].split("\\.");
 		String[] p2 = p[1].split("\\.");
 		String pr1, pr2;
-		if(p1[0].equals(t1)){
+		if (p1[0].equals(t1)) {
 			pr1 = p1[1];
 			pr2 = p2[1];
-		}else{
+		} else {
 			pr1 = p2[1];
 			pr2 = p1[1];
 		}
-		return dataHandler.getAllValues(catHandler.getNameOfCurrentDatabase(), catHandler.getTable(table1), catHandler.getTable(table2), pr1, pr2);
+		return dataHandler.getAllValues(catHandler.getNameOfCurrentDatabase(), catHandler.getTable(table1),
+				catHandler.getTable(table2), pr1, pr2);
 	}
 
 }
